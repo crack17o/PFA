@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyd
+*.pdb
+*.egg-info/
+venv/
+env/
+ENV/
+.venv/
+
+# Flask
+instance/
+*.db
+*.sqlite3
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Env
+.env
+.env.*
+
+# Node
+node_modules/
+
+# Docker
+*.pid
+
+# Test/coverage
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Docs
+/docs/_build/
+
+# Misc
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build
+build/
+dist/
+*.egg
+.eggs/
+
+# MySQL dumps
+*.sql
+
+# Fichiers temporaires
+*.tmp
+*.bak
