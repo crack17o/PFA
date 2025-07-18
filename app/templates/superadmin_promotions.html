@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des promotions</h1>
+  <div class="flex justify-between mb-4 items-center">
+    <div>
+      <label for="filterFaculty" class="mr-2 font-semibold">Filtrer par faculté :</label>
+      <select id="filterFaculty" class="border rounded px-3 py-2">
+      </select>
+    </div>
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openPromotionModal('add')">Ajouter une promotion</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Nom</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="promotions-list"></tbody>
+  </table>
+  <!-- Modal Ajout/Édition Promotion -->
+  <div id="promotionModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="promotionModalTitle" class="text-xl font-bold mb-4">Ajouter une promotion</h2>
+      <form id="promotionForm">
+        <input type="hidden" id="promotionId">
+        <label class="block mb-2">Nom :</label>
+        <input type="text" id="promotionName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Faculté :</label>
+        <select id="promotionFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closePromotionModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+let allPromotions = [];
+let allFaculties = [];
+
+function loadFacultiesForFilter() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      allFaculties = Array.isArray(data) ? data : [];
+      const select = document.getElementById('filterFaculty');
+      allFaculties.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    });
+}
+
+function loadPromotions() {
+  fetch('/api/promotions')
+    .then(res => res.json())
+    .then(data => {
+      allPromotions = Array.isArray(data) ? data : [];
+      renderPromotions();
+    });
+}
+
+function renderPromotions() {
+  const facultyId = document.getElementById('filterFaculty').value;
+  const tbody = document.getElementById('promotions-list');
+  tbody.innerHTML = '';
+  let filtered = allPromotions;
+  if (facultyId) {
+    filtered = filtered.filter(p => p.faculty_id == facultyId);
+  }
+  filtered.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${p.name}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openPromotionModal("edit", ${JSON.stringify(p)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deletePromotion("${p.id}")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('filterFaculty').addEventListener('change', renderPromotions);
+
+loadFacultiesForFilter();
+loadPromotions();
+function openPromotionModal(mode, promotionObj) {
+  document.getElementById('promotionModal').classList.remove('hidden');
+  document.getElementById('promotionForm').reset();
+  document.getElementById('promotionId').value = '';
+  // Charger les facultés dynamiquement
+  fetch('/api/faculties').then(res => res.json()).then(data => {
+    const select = document.getElementById('promotionFaculty');
+    select.innerHTML = '';
+    (Array.isArray(data) ? data : []).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      select.appendChild(opt);
+    });
+    if (mode === 'edit' && promotionObj) {
+      document.getElementById('promotionModalTitle').textContent = 'Éditer la promotion';
+      document.getElementById('promotionId').value = promotionObj.id;
+      document.getElementById('promotionName').value = promotionObj.name;
+      select.value = promotionObj.faculty_id;
+    } else {
+      document.getElementById('promotionModalTitle').textContent = 'Ajouter une promotion';
+    }
+  });
+}
+function closePromotionModal() {
+  document.getElementById('promotionModal').classList.add('hidden');
+}
+document.getElementById('promotionForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('promotionId').value;
+  const name = document.getElementById('promotionName').value;
+  const faculty_id = document.getElementById('promotionFaculty').value;
+  const payload = { name, faculty_id };
+  let url = '/api/promotions';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .then(data => {
+      closePromotionModal();
+      loadPromotions();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+function deletePromotion(promotionId) {
+  if (!confirm('Supprimer cette promotion ?')) return;
+  fetch(`/api/promotions/${promotionId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadPromotions();
+      alert(data.message || 'Promotion supprimée !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+</script>
+{% endblock %}

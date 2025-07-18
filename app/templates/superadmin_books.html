@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des livres</h1>
+  <div class="flex justify-between mb-4 items-center">
+    <div>
+      <label for="filterFaculty" class="mr-2 font-semibold">Filtrer par faculté :</label>
+      <select id="filterFaculty" class="border rounded px-3 py-2">
+        <option value="">Toutes</option>
+      </select>
+    </div>
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openBookModal('add')">Ajouter un livre</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Titre</th>
+        <th class="py-2 px-4">Auteur</th>
+        <th class="py-2 px-4">Faculté</th>
+        <th class="py-2 px-4">Fichier</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="books-list"></tbody>
+  </table>
+  <!-- Modal Ajout Livre -->
+  <div id="bookModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="bookModalTitle" class="text-xl font-bold mb-4">Ajouter un livre</h2>
+      <form id="bookForm">
+        <input type="hidden" id="bookId">
+        <label class="block mb-2">Titre :</label>
+        <input type="text" id="bookTitle" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Auteur :</label>
+        <input type="text" id="bookAuthor" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Faculté :</label>
+        <select id="bookFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Fichier PDF :</label>
+        <input type="file" id="bookFile" accept="application/pdf" class="w-full border rounded px-3 py-2 mb-4">
+        <div id="currentFile" class="mb-4"></div>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeBookModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+let allBooks = [];
+let allFaculties = [];
+
+function loadFacultiesForFilter() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      allFaculties = Array.isArray(data) ? data : [];
+      const select = document.getElementById('filterFaculty');
+      select.innerHTML = '<option value="">Toutes</option>';
+      allFaculties.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    });
+}
+
+function loadBooks() {
+  fetch('/api/books')
+    .then(res => res.json())
+    .then(data => {
+      allBooks = Array.isArray(data) ? data : [];
+      renderBooks();
+    });
+}
+
+function renderBooks() {
+  const facultyId = document.getElementById('filterFaculty').value;
+  const tbody = document.getElementById('books-list');
+  tbody.innerHTML = '';
+  let filtered = allBooks;
+  if (facultyId) {
+    filtered = filtered.filter(b => b.faculty_id == facultyId);
+  }
+  filtered.forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${b.title}</td><td class='py-2 px-4'>${b.author}</td><td class='py-2 px-4'>${b.faculty_name || ''}</td><td class='py-2 px-4'>${b.file_url ? `<a href='${b.file_url}' target='_blank' class='text-blue-600 underline'>Télécharger</a>` : 'Aucun'} </td><td class='py-2 px-4'><button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteBook("${b.id}")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('filterFaculty').addEventListener('change', renderBooks);
+
+loadFacultiesForFilter();
+loadBooks();
+function openBookModal(mode, bookObj) {
+  document.getElementById('bookModal').classList.remove('hidden');
+  document.getElementById('bookForm').reset();
+  document.getElementById('bookId').value = '';
+  // Charger les facultés dynamiquement
+  fetch('/api/faculties').then(res => res.json()).then(data => {
+    const select = document.getElementById('bookFaculty');
+    select.innerHTML = '';
+    (Array.isArray(data) ? data : []).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      select.appendChild(opt);
+    });
+    if (mode === 'edit' && bookObj) {
+      document.getElementById('bookModalTitle').textContent = 'Éditer le livre';
+      document.getElementById('bookId').value = bookObj.id;
+      document.getElementById('bookTitle').value = bookObj.title;
+      document.getElementById('bookAuthor').value = bookObj.author;
+      select.value = bookObj.faculty_id;
+      // Affiche le fichier actuel
+      const currentFileDiv = document.getElementById('currentFile');
+      if (bookObj.file_url) {
+        currentFileDiv.innerHTML = `<span class='text-gray-600'>Fichier actuel : </span><a href='${bookObj.file_url}' target='_blank' class='text-blue-600 underline'>Télécharger le PDF</a>`;
+      } else {
+        currentFileDiv.innerHTML = `<span class='text-gray-600'>Aucun fichier PDF associé.</span>`;
+      }
+    } else {
+      document.getElementById('bookModalTitle').textContent = 'Ajouter un livre';
+      document.getElementById('currentFile').innerHTML = '';
+    }
+  });
+}
+function closeBookModal() {
+  document.getElementById('bookModal').classList.add('hidden');
+}
+document.getElementById('bookForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('bookId').value;
+  const title = document.getElementById('bookTitle').value;
+  const author = document.getElementById('bookAuthor').value;
+  const faculty_id = document.getElementById('bookFaculty').value;
+  const fileInput = document.getElementById('bookFile');
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('author', author);
+  formData.append('faculty_id', faculty_id);
+  if (fileInput.files.length > 0) {
+    formData.append('file', fileInput.files[0]);
+  }
+  let url = '/api/books';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
+    body: formData
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeBookModal();
+      loadBooks();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+function deleteBook(bookId) {
+  if (!confirm('Supprimer ce livre ?')) return;
+  fetch(`/api/books/${bookId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadBooks();
+      alert(data.message || 'Livre supprimé !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+Flask
+Flask-SQLAlchemy
+Flask-Mail
+Flask-Session
+Flask-Cors
+PyMySQL
+python-dotenv
+uuid
+itsdangerous
+passlib
+requests
+openai
+pytest

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des facultés</h1>
+  <div class="flex justify-end mb-4">
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openFacultyModal('add')">Ajouter une faculté</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Nom</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="faculties-list"></tbody>
+  </table>
+  <!-- Modal Ajout/Édition Faculté -->
+  <div id="facultyModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="facultyModalTitle" class="text-xl font-bold mb-4">Ajouter une faculté</h2>
+      <form id="facultyForm">
+        <input type="hidden" id="facultyId">
+        <label class="block mb-2">Nom :</label>
+        <input type="text" id="facultyName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeFacultyModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function loadFaculties() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById('faculties-list');
+      tbody.innerHTML = '';
+      (Array.isArray(data) ? data : []).forEach(f => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class='py-2 px-4'>${f.name}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openFacultyModal("edit", ${JSON.stringify(f)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteFaculty("${f.id}")'>Supprimer</button></td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+loadFaculties();
+function openFacultyModal(mode, facultyObj) {
+  document.getElementById('facultyModal').classList.remove('hidden');
+  document.getElementById('facultyForm').reset();
+  document.getElementById('facultyId').value = '';
+  if (mode === 'edit' && facultyObj) {
+    document.getElementById('facultyModalTitle').textContent = 'Éditer la faculté';
+    document.getElementById('facultyId').value = facultyObj.id;
+    document.getElementById('facultyName').value = facultyObj.name;
+  } else {
+    document.getElementById('facultyModalTitle').textContent = 'Ajouter une faculté';
+  }
+}
+function closeFacultyModal() {
+  document.getElementById('facultyModal').classList.add('hidden');
+}
+document.getElementById('facultyForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('facultyId').value;
+  const name = document.getElementById('facultyName').value;
+  const payload = { name };
+  let url = '/api/faculties';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeFacultyModal();
+      loadFaculties();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+function deleteFaculty(facultyId) {
+  if (!confirm('Supprimer cette faculté ?')) return;
+  fetch(`/api/faculties/${facultyId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadFaculties();
+      alert(data.message || 'Faculté supprimée !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+</script>
+{% endblock %}

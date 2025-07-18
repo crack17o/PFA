@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Flask App",
+      "type": "shell",
+      "command": "flask run",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "pytest",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Docker Image",
+      "type": "shell",
+      "command": "docker build -t unimate .",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

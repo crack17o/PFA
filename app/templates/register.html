@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md w-full mx-auto bg-white rounded-lg shadow-lg p-8">
+    <h2 class="text-2xl font-bold text-blue-600 mb-6 text-center">Inscription</h2>
+    <form id="registerForm" class="space-y-4">
+        <div class="flex gap-2">
+            <div class="w-1/2">
+                <label class="block text-gray-700">Prénom</label>
+                <input type="text" name="first_name" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="w-1/2">
+                <label class="block text-gray-700">Nom</label>
+                <input type="text" name="last_name" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+        <div>
+            <label class="block text-gray-700">Email</label>
+            <input type="email" name="email" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-gray-700">Mot de passe</label>
+            <input type="password" name="password" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-gray-700">Rôle</label>
+            <select name="role" id="roleSelect" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="" disabled selected>Chargement...</option>
+            </select>
+        </div>
+        <div id="facultyDiv" style="display:none;">
+            <label class="block text-gray-700">Faculté</label>
+            <select name="faculty_id" id="facultySelect" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400 text-orange-500"></select>
+        </div>
+        <div id="promotionDiv">
+            <label class="block text-gray-700">Promotion</label>
+            <select name="promotion_id" id="promotionSelect" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400 text-orange-500"></select>
+        </div>
+        <div id="departmentDiv">
+            <label class="block text-gray-700">Département</label>
+            <select name="department_id" id="departmentSelect" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400 text-orange-500"></select>
+        </div>
+        <button type="submit" class="w-full bg-orange-400 text-white py-2 rounded font-semibold hover:bg-blue-600 transition">S'inscrire</button>
+    </form>
+    <div id="registerMsg" class="mt-4 text-center text-sm"></div>
+    <p class="mt-4 text-center text-gray-600">Déjà inscrit ? <a href="/login" class="text-blue-600 hover:underline">Connectez-vous</a></p>
+    <script>
+    // Affiche/masque les champs selon le rôle
+    const roleSelect = document.getElementById('roleSelect');
+    const promotionDiv = document.getElementById('promotionDiv');
+    const departmentDiv = document.getElementById('departmentDiv');
+    const facultyDiv = document.getElementById('facultyDiv');
+    const promotionSelect = document.getElementById('promotionSelect');
+    const departmentSelect = document.getElementById('departmentSelect');
+    const facultySelect = document.getElementById('facultySelect');
+
+    let facultiesCache = [];
+    let rolesLoaded = false;
+    async function loadRoles() {
+        roleSelect.innerHTML = '<option value="" disabled selected>Chargement...</option>';
+        try {
+            const res = await fetch('/api/roles');
+            const roles = await res.json();
+            if (roles.length) {
+                roleSelect.innerHTML = roles.map(r => `<option value="${r.name}">${r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>`).join('');
+                rolesLoaded = true;
+            } else {
+                roleSelect.innerHTML = '<option value="" disabled>Aucun rôle disponible</option>';
+            }
+        } catch {
+            roleSelect.innerHTML = '<option value="" disabled>Erreur chargement rôles</option>';
+        }
+    }
+    async function loadFaculties() {
+        // Toujours recharger la liste pour éviter les problèmes d'affichage
+        const res = await fetch('/api/faculties');
+        facultiesCache = await res.json();
+        console.log('Faculties loaded:', facultiesCache);
+        let options = '';
+        if (facultiesCache.length) {
+            options = '<option value="">Sélectionner</option>' + facultiesCache.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+        } else {
+            options = '<option value="" selected>Sélectionner</option>';
+        }
+        facultySelect.innerHTML = options;
+        facultySelect.disabled = false;
+        facultySelect.hidden = false;
+        // Force l'affichage du select faculté si le rôle est professeur ou admin
+        const role = roleSelect.value;
+        if (role === 'professor' || role === 'admin' || role === 'student') {
+            facultyDiv.style.display = '';
+        }
+    }
+    async function loadPromotions(facultyId) {
+        if (!facultyId) {
+            promotionSelect.innerHTML = '<option value="">Sélectionner</option>';
+            return;
+        }
+        const res = await fetch(`/api/faculties/${facultyId}/promotions`);
+        const promotions = await res.json();
+        promotionSelect.innerHTML = '<option value="">Sélectionner</option>' + promotions.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+    async function loadDepartments(facultyId) {
+        if (!facultyId) {
+            departmentSelect.innerHTML = '<option value="">Sélectionner</option>';
+            return;
+        }
+        const res = await fetch(`/api/faculties/${facultyId}/departments`);
+        const departments = await res.json();
+        departmentSelect.innerHTML = '<option value="">Sélectionner</option>' + departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    }
+
+    facultySelect.addEventListener('change', async function() {
+        await loadPromotions(this.value);
+        await loadDepartments(this.value);
+    });
+
+    async function updateFields() {
+        const role = roleSelect.value;
+        // Réinitialise les listes
+        promotionSelect.innerHTML = '<option value="">Sélectionner</option>';
+        departmentSelect.innerHTML = '<option value="">Sélectionner</option>';
+        facultySelect.innerHTML = '<option value="">Sélectionner</option>';
+        // Faculté doit être visible par défaut sauf pour superadmin
+        if (role === 'student') {
+            promotionDiv.style.display = '';
+            departmentDiv.style.display = '';
+            facultyDiv.style.display = '';
+            promotionSelect.required = true;
+            departmentSelect.required = true;
+            facultySelect.required = true;
+            await loadFaculties();
+        } else if (role === 'prof' || role === 'faculty_admin') {
+            promotionDiv.style.display = 'none';
+            departmentDiv.style.display = 'none';
+            facultyDiv.style.display = '';
+            promotionSelect.required = false;
+            departmentSelect.required = false;
+            facultySelect.required = true;
+            await loadFaculties();
+        } else if (role === 'superadmin') {
+            promotionDiv.style.display = 'none';
+            departmentDiv.style.display = 'none';
+            facultyDiv.style.display = 'none';
+            promotionSelect.required = false;
+            departmentSelect.required = false;
+            facultySelect.required = false;
+        }
+    }
+    async function initForm() {
+        await loadRoles();
+        await updateFields();
+    }
+    roleSelect.addEventListener('change', updateFields);
+    window.addEventListener('DOMContentLoaded', initForm);
+
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const first_name = form.first_name.value;
+        const last_name = form.last_name.value;
+        const email = form.email.value;
+        const password = form.password.value;
+        const role = form.role.value;
+        const promotion_id = form.promotion_id.value;
+        const department_id = form.department_id.value;
+        const faculty_id = form.faculty_id.value;
+        const msg = document.getElementById('registerMsg');
+        msg.textContent = '';
+        let payload = { email, password, role, first_name, last_name };
+        if (role === 'student') {
+            payload.promotion_id = promotion_id;
+            payload.department_id = department_id;
+            payload.faculty_id = faculty_id;
+        } else if (role === 'prof' || role === 'faculty_admin') {
+            payload.faculty_id = faculty_id;
+        }
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                msg.textContent = data.message || 'Inscription réussie.';
+                msg.className = 'mt-4 text-green-600 text-center text-sm';
+                setTimeout(() => window.location.href = '/login', 1000);
+            } else {
+                msg.textContent = data.error || 'Erreur lors de l\'inscription.';
+                msg.className = 'mt-4 text-red-600 text-center text-sm';
+            }
+        } catch (err) {
+            msg.textContent = 'Erreur réseau.';
+            msg.className = 'mt-4 text-red-600 text-center text-sm';
+        }
+    });
+    </script>
+</div>
+{% endblock %}

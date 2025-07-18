@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des années académiques et semestres</h1>
+  <div class="flex justify-end mb-4">
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openYearModal()">Ajouter une année académique</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Année académique</th>
+        <th class="py-2 px-4">Semestres</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="years-list"></tbody>
+  </table>
+  <div id="feedback" class="text-center text-green-600 font-semibold mb-4 hidden"></div>
+  <!-- Modal Année académique -->
+  <div id="yearModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="yearModalTitle" class="text-xl font-bold mb-4">Ajouter une année académique</h2>
+      <form id="yearForm">
+        <input type="hidden" id="yearId">
+        <label class="block mb-2">Année (ex: 2024-2025) :</label>
+        <input type="text" id="yearValue" class="w-full border rounded px-3 py-2 mb-4" required pattern="^[0-9]{4}-[0-9]{4}$" title="Format attendu : 2024-2025">
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeYearModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Modal Semestre -->
+  <div id="semesterModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="semesterModalTitle" class="text-xl font-bold mb-4">Ajouter un semestre</h2>
+      <form id="semesterForm">
+        <input type="hidden" id="semesterId">
+        <label class="block mb-2">Nom du semestre :</label>
+        <input type="text" id="semesterName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <input type="hidden" id="semesterYearId">
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeSemesterModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function showFeedback(msg, isError = false) {
+  const feedback = document.getElementById('feedback');
+  feedback.textContent = msg;
+  feedback.classList.remove('hidden');
+  feedback.classList.toggle('text-green-600', !isError);
+  feedback.classList.toggle('text-red-600', isError);
+  setTimeout(() => feedback.classList.add('hidden'), 2500);
+}
+
+function loadYears() {
+  fetch('/api/superadmin/academicyears')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById('years-list');
+      tbody.innerHTML = '';
+      // Tri décroissant
+      (Array.isArray(data) ? data.sort((a, b) => b.year.localeCompare(a.year)) : []).forEach(y => {
+        const semesters = (y.semesters || []).map(s => `<span class='inline-block bg-gray-200 rounded px-2 py-1 mr-1 mb-1'>${s.name} <button onclick='openSemesterModal("edit", ${JSON.stringify(s)}, "${y.id}")' class='text-xs text-blue-600'>✎</button> <button onclick='deleteSemester("${s.id}")' class='text-xs text-red-600'>🗑️</button></span>`).join('');
+        tbody.innerHTML += `<tr><td class='py-2 px-4 font-semibold'>${y.year}</td><td class='py-2 px-4'>${semesters} <button class='bg-green-500 text-white px-2 py-1 rounded text-xs' onclick='openSemesterModal("add", null, "${y.id}")'>+ Semestre</button></td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openYearModal("edit", ${JSON.stringify(y)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteYear("${y.id}")'>Supprimer</button></td></tr>`;
+      });
+    });
+}
+loadYears();
+function openYearModal(mode, yearObj) {
+  document.getElementById('yearModal').classList.remove('hidden');
+  document.getElementById('yearForm').reset();
+  document.getElementById('yearId').value = '';
+  if (mode === 'edit' && yearObj) {
+    document.getElementById('yearModalTitle').textContent = 'Éditer l\'année académique';
+    document.getElementById('yearId').value = yearObj.id;
+    document.getElementById('yearValue').value = yearObj.year;
+  } else {
+    document.getElementById('yearModalTitle').textContent = 'Ajouter une année académique';
+  }
+}
+function closeYearModal() {
+  document.getElementById('yearModal').classList.add('hidden');
+}
+document.getElementById('yearForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('yearId').value;
+  const year = document.getElementById('yearValue').value;
+  let url = '/api/superadmin/academicyears';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ year })
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeYearModal();
+      loadYears();
+      showFeedback(data.message || 'Opération réussie !');
+    })
+    .catch(() => showFeedback('Erreur lors de l\'opération.', true));
+};
+function deleteYear(yearId) {
+  if (!confirm('Supprimer cette année académique ?')) return;
+  fetch(`/api/superadmin/academicyears/${yearId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadYears();
+  showFeedback(data.message || 'Année supprimée !');
+    })
+    .catch(() => showFeedback('Erreur lors de la suppression.', true));
+}
+function openSemesterModal(mode, semesterObj, yearId) {
+  document.getElementById('semesterModal').classList.remove('hidden');
+  document.getElementById('semesterForm').reset();
+  document.getElementById('semesterId').value = '';
+  document.getElementById('semesterYearId').value = yearId || '';
+  if (mode === 'edit' && semesterObj) {
+    document.getElementById('semesterModalTitle').textContent = 'Éditer le semestre';
+    document.getElementById('semesterId').value = semesterObj.id;
+    document.getElementById('semesterName').value = semesterObj.name;
+  } else {
+    document.getElementById('semesterModalTitle').textContent = 'Ajouter un semestre';
+  }
+}
+function closeSemesterModal() {
+  document.getElementById('semesterModal').classList.add('hidden');
+}
+document.getElementById('semesterForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('semesterId').value;
+  const name = document.getElementById('semesterName').value;
+  const academic_year_id = document.getElementById('semesterYearId').value;
+  let url = '/api/superadmin/semesters';
+  let method = 'POST';
+  let payload = { name, academic_year_id };
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+    delete payload.academic_year_id;
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeSemesterModal();
+      loadYears();
+      showFeedback(data.message || 'Opération réussie !');
+    })
+    .catch(() => showFeedback('Erreur lors de l\'opération.', true));
+};
+function deleteSemester(semesterId) {
+  if (!confirm('Supprimer ce semestre ?')) return;
+  fetch(`/api/superadmin/semesters/${semesterId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadYears();
+  showFeedback(data.message || 'Semestre supprimé !');
+    })
+    .catch(() => showFeedback('Erreur lors de la suppression.', true));
+}
+</script>
+{% endblock %}

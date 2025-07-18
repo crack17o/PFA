@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Tableau de bord étudiant</h1>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-xl font-semibold">Cours inscrits</span>
+      <span id="nb-courses" class="text-4xl font-bold text-blue-600 mt-2">0</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-xl font-semibold">Livres disponibles</span>
+      <span id="nb-books" class="text-4xl font-bold text-green-600 mt-2">0</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-xl font-semibold">Séances du jour</span>
+      <span id="nb-sessions" class="text-4xl font-bold text-purple-600 mt-2">0</span>
+    </div>
+  </div>
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4">Séances du jour</h2>
+    <ul id="sessions-today" class="list-disc pl-6 text-lg"></ul>
+  </div>
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4">Mes cours</h2>
+    <ul id="dashboard-courses" class="list-disc pl-6 text-lg"></ul>
+  </div>
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4">Livres récents</h2>
+    <ul id="dashboard-books" class="list-disc pl-6 text-lg"></ul>
+  </div>
+</div>
+<script>
+fetch('/api/student/dashboard', {method: 'GET'})
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('nb-courses').textContent = data.stats.nb_courses || 0;
+    document.getElementById('nb-books').textContent = data.stats.nb_books || 0;
+    // Séances du jour
+    const sessionsToday = data.sessions_today || [];
+    document.getElementById('nb-sessions').textContent = sessionsToday.length;
+    const ulSessions = document.getElementById('sessions-today');
+    ulSessions.innerHTML = '';
+    sessionsToday.forEach(s => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class='font-semibold'>${s.course_name}</span> - ${s.date} (<span class='text-blue-600'>${s.status}</span>)`;
+      ulSessions.appendChild(li);
+    });
+    // Détails des cours
+    const courses = document.getElementById('dashboard-courses');
+    courses.innerHTML = '';
+    (data.stats.courses || []).forEach(c => {
+      const li = document.createElement('li');
+      li.textContent = `${c.name} (${c.credits} crédits)`;
+      courses.appendChild(li);
+    });
+    // Livres récents
+    const books = document.getElementById('dashboard-books');
+    books.innerHTML = '';
+    (data.stats.books || []).forEach(b => {
+      const li = document.createElement('li');
+      li.innerHTML = `<a href='${b.file_url}' target='_blank' class='text-blue-600 hover:underline'>${b.title}</a> par ${b.author}`;
+      books.appendChild(li);
+    });
+  });
+</script>
+{% endblock %}

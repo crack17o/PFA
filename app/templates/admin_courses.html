@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des cours</h1>
+  <div class="flex justify-end mb-4">
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openCourseModal('add')">Ajouter un cours</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Nom</th>
+        <th class="py-2 px-4">Crédits</th>
+        <th class="py-2 px-4">Professeurs</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="courses-list"></tbody>
+  </table>
+  <!-- Modal Ajout/Édition Cours -->
+  <div id="courseModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="courseModalTitle" class="text-xl font-bold mb-4">Ajouter un cours</h2>
+      <form id="courseForm">
+        <input type="hidden" id="courseId">
+        <label class="block mb-2">Nom :</label>
+        <input type="text" id="courseName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Crédits :</label>
+        <input type="number" id="courseCredits" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Faculté :</label>
+        <select id="courseFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Département :</label>
+        <select id="courseDepartment" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Promotion :</label>
+        <select id="coursePromotion" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Semestre :</label>
+        <select id="courseSemester" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeCourseModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Affectation Prof -->
+  <div id="assignModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 class="text-xl font-bold mb-4">Affecter un professeur</h2>
+      <form id="assignForm">
+        <input type="hidden" id="assignCourseId">
+        <label class="block mb-2">Choisir le professeur :</label>
+        <select id="profSelect" class="w-full border rounded px-3 py-2 mb-4"></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeAssignModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Affecter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Retrait Prof -->
+  <div id="unassignModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 class="text-xl font-bold mb-4">Retirer un professeur</h2>
+      <form id="unassignForm">
+        <input type="hidden" id="unassignCourseId">
+        <label class="block mb-2">Choisir le professeur à retirer :</label>
+        <select id="unassignProfSelect" class="w-full border rounded px-3 py-2 mb-4"></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeUnassignModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">Retirer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function loadCourses() {
+  fetch('/api/courses')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById('courses-list');
+      tbody.innerHTML = '';
+      if (data.error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-red-500 py-4 text-center">${data.error}</td></tr>`;
+        return;
+      }
+      (Array.isArray(data) ? data : []).forEach(c => {
+        const profs = c.professors ? c.professors.map(p => (p.name ? p.name : p.email)).join(', ') : '';
+        const hasProf = Array.isArray(c.professors) && c.professors.length > 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class='py-2 px-4'>${c.name}</td><td class='py-2 px-4'>${c.credits}</td><td class='py-2 px-4'>${profs}</td><td class='py-2 px-4'>
+          ${!hasProf ? `<button class='bg-blue-600 text-white px-2 py-1 rounded' onclick='assignProf("${c.id}", ${JSON.stringify(c)})'>Affecter</button>` : ''}
+          ${hasProf ? `<button class='bg-red-500 text-white px-2 py-1 rounded' onclick='unassignProf("${c.id}", ${JSON.stringify(c)})'>Retirer</button>` : ''}
+          <button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openCourseModal("edit", ${JSON.stringify(c)})'>Éditer</button>
+          <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteCourse("${c.id}")'>Supprimer</button>
+        </td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+function openCourseModal(mode, courseObj) {
+  document.getElementById('courseModal').classList.remove('hidden');
+  document.getElementById('courseForm').reset();
+  document.getElementById('courseId').value = '';
+  if (mode === 'add') {
+    document.getElementById('courseModalTitle').textContent = 'Ajouter un cours';
+  } else {
+    document.getElementById('courseModalTitle').textContent = 'Éditer le cours';
+    document.getElementById('courseId').value = courseObj.id;
+  }
+  const facultySelect = document.getElementById('courseFaculty');
+  async function loadFacultiesForCourse(selectedId) {
+    const res = await fetch('/api/faculties');
+    const faculties = await res.json();
+    facultySelect.innerHTML = '<option value="">Sélectionner</option>' + faculties.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    if (selectedId) facultySelect.value = selectedId;
+  }
+  async function loadPromotionsForCourse(facultyId, selectedId) {
+    const promSelect = document.getElementById('coursePromotion');
+    if (!facultyId) {
+      promSelect.innerHTML = '<option value="">Sélectionner</option>';
+      return;
+    }
+    const res = await fetch(`/api/faculties/${facultyId}/promotions`);
+    const promotions = await res.json();
+    promSelect.innerHTML = '<option value="">Sélectionner</option>' + promotions.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    if (selectedId) promSelect.value = selectedId;
+  }
+  async function loadDepartmentsForCourse(facultyId, selectedId) {
+    const depSelect = document.getElementById('courseDepartment');
+    if (!facultyId) {
+      depSelect.innerHTML = '<option value="">Sélectionner</option>';
+      return;
+    }
+    const res = await fetch(`/api/faculties/${facultyId}/departments`);
+    const departments = await res.json();
+    depSelect.innerHTML = '<option value="">Sélectionner</option>' + departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    if (selectedId) depSelect.value = selectedId;
+  }
+  fetch('/api/semesters').then(res => res.json()).then(semesters => {
+    const semSelect = document.getElementById('courseSemester');
+    semSelect.innerHTML = '';
+    (Array.isArray(semesters) ? semesters : []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      semSelect.appendChild(opt);
+    });
+    if (mode === 'edit' && courseObj) {
+      semSelect.value = courseObj.semester_id;
+    }
+  });
+  facultySelect.addEventListener('change', async function() {
+    await loadPromotionsForCourse(this.value);
+    await loadDepartmentsForCourse(this.value);
+  });
+  // Initial load
+  loadFacultiesForCourse(mode === 'edit' && courseObj ? courseObj.faculty_id : null).then(() => {
+    if (mode === 'edit' && courseObj) {
+      document.getElementById('courseName').value = courseObj.name;
+      document.getElementById('courseCredits').value = courseObj.credits;
+      facultySelect.value = courseObj.faculty_id;
+      loadPromotionsForCourse(courseObj.faculty_id, courseObj.promotion_id);
+      loadDepartmentsForCourse(courseObj.faculty_id, courseObj.department_id);
+    }
+  });
+}
+function closeCourseModal() {
+  document.getElementById('courseModal').classList.add('hidden');
+}
+document.getElementById('courseForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('courseId').value;
+  const name = document.getElementById('courseName').value;
+  const credits = document.getElementById('courseCredits').value;
+  const department_id = document.getElementById('courseDepartment').value;
+  const promotion_id = document.getElementById('coursePromotion').value;
+  const semester_id = document.getElementById('courseSemester').value;
+  const payload = { name, credits, department_id, promotion_id, semester_id };
+  let url = '/api/admin/courses';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeCourseModal();
+      loadCourses();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+
+function deleteCourse(courseId) {
+  if (!confirm('Supprimer ce cours ?')) return;
+  fetch(`/api/admin/courses/${courseId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadCourses();
+      alert(data.message || 'Cours supprimé !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+
+function openAssignModal(courseId) {
+  document.getElementById('assignCourseId').value = courseId;
+  document.getElementById('assignModal').classList.remove('hidden');
+  // Charger la liste des profs
+  fetch('/api/admin/users')
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById('profSelect');
+      select.innerHTML = '';
+      (Array.isArray(data) ? data : []).filter(u => u.role === 'prof').forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = (p.name ? p.name : p.email) + (p.email ? ' (' + p.email + ')' : '');
+        select.appendChild(opt);
+      });
+    });
+}
+function closeAssignModal() {
+  document.getElementById('assignModal').classList.add('hidden');
+}
+function assignProf(courseId) {
+  openAssignModal(courseId);
+}
+document.getElementById('assignForm').onsubmit = function(e) {
+  e.preventDefault();
+  const courseId = document.getElementById('assignCourseId').value;
+  const profId = document.getElementById('profSelect').value;
+  fetch(`/api/admin/courses/${courseId}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ professor_id: profId })
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeAssignModal();
+      loadCourses();
+      alert(data.message || 'Professeur affecté !');
+    })
+    .catch(() => alert('Erreur lors de l\'affectation.'));
+};
+
+function openUnassignModal(courseId, courseObj) {
+  document.getElementById('unassignCourseId').value = courseId;
+  document.getElementById('unassignModal').classList.remove('hidden');
+  // Charger la liste des profs déjà affectés à ce cours
+  const select = document.getElementById('unassignProfSelect');
+  select.innerHTML = '';
+  (courseObj.professors || []).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = (p.name ? p.name : p.email) + (p.email ? ' (' + p.email + ')' : '');
+    select.appendChild(opt);
+  });
+}
+function closeUnassignModal() {
+  document.getElementById('unassignModal').classList.add('hidden');
+}
+function unassignProf(courseId, courseObj) {
+  openUnassignModal(courseId, courseObj);
+}
+document.getElementById('unassignForm').onsubmit = function(e) {
+  e.preventDefault();
+  const courseId = document.getElementById('unassignCourseId').value;
+  const profId = document.getElementById('unassignProfSelect').value;
+  fetch(`/api/admin/courses/${courseId}/unassign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ professor_id: profId })
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeUnassignModal();
+      loadCourses();
+      alert(data.message || 'Professeur retiré !');
+    })
+    .catch(() => alert('Erreur lors du retrait.'));
+};
+
+loadCourses();
+</script>
+{% endblock %}

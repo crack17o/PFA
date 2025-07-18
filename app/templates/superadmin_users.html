@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des utilisateurs</h1>
+  <div class="flex justify-between mb-4 items-center">
+    <div class="flex gap-4 items-center">
+      <label for="filterRole" class="font-semibold">Filtrer par rôle :</label>
+      <select id="filterRole" class="border rounded px-3 py-2">
+        <option value="">Tous</option>
+      </select>
+    </div>
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openUserModal('add')">Ajouter un utilisateur</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Nom</th>
+        <th class="py-2 px-4">Email</th>
+        <th class="py-2 px-4">Rôle</th>
+        <th class="py-2 px-4">Faculté</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="users-list"></tbody>
+  </table>
+  <!-- Modal Ajout/Édition Utilisateur -->
+  <div id="userModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md overflow-y-auto max-h-[90vh]">
+      <h2 id="userModalTitle" class="text-xl font-bold mb-4">Ajouter un utilisateur</h2>
+      <form id="userForm">
+        <input type="hidden" id="userId">
+        <label class="block mb-2">Prénom :</label>
+        <input type="text" id="userFirstName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Nom :</label>
+        <input type="text" id="userLastName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Email :</label>
+        <input type="email" id="userEmail" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Mot de passe :</label>
+        <input type="password" id="userPassword" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Rôle :</label>
+        <select id="userRole" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Faculté :</label>
+        <select id="userFaculty" class="w-full border rounded px-3 py-2 mb-4"></select>
+        <div id="studentFields" style="display:none">
+          <label class="block mb-2">Promotion :</label>
+          <select id="userPromotion" class="w-full border rounded px-3 py-2 mb-4"></select>
+          <label class="block mb-2">Département :</label>
+          <select id="userDepartment" class="w-full border rounded px-3 py-2 mb-4"></select>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeUserModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+let allUsers = [];
+let allRoles = [];
+
+function loadRolesForFilter() {
+  fetch('/api/roles')
+    .then(res => res.json())
+    .then(data => {
+      allRoles = Array.isArray(data) ? data : [];
+      const select = document.getElementById('filterRole');
+      select.innerHTML = '<option value="">Tous</option>';
+      allRoles.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.name;
+        opt.textContent = r.name;
+        select.appendChild(opt);
+      });
+    });
+}
+
+function loadUsers() {
+  fetch('/api/admin/users')
+    .then(res => res.json())
+    .then(data => {
+      allUsers = Array.isArray(data) ? data : [];
+      renderUsers();
+    });
+}
+
+function renderUsers() {
+  const role = document.getElementById('filterRole').value;
+  const tbody = document.getElementById('users-list');
+  tbody.innerHTML = '';
+  let filtered = allUsers;
+  if (role) {
+    filtered = filtered.filter(u => u.role === role);
+  }
+  filtered.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${u.name}</td><td class='py-2 px-4'>${u.email}</td><td class='py-2 px-4'>${u.role}</td><td class='py-2 px-4'>${u.faculty && u.faculty.name ? u.faculty.name : ''}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openUserModal("edit", ${JSON.stringify(u)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteUser("${u.id}")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('filterRole').addEventListener('change', renderUsers);
+
+loadRolesForFilter();
+loadUsers();
+function openUserModal(mode, userObj) {
+  document.getElementById('userModal').classList.remove('hidden');
+  document.getElementById('userForm').reset();
+  document.getElementById('userId').value = '';
+  // Charger les rôles dynamiquement
+  fetch('/api/roles').then(res => res.json()).then(roles => {
+    const selectRole = document.getElementById('userRole');
+    selectRole.innerHTML = '';
+    (Array.isArray(roles) ? roles : []).forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      selectRole.appendChild(opt);
+    });
+    // Charger les facultés dynamiquement
+    fetch('/api/faculties').then(res => res.json()).then(faculties => {
+      const selectFaculty = document.getElementById('userFaculty');
+      selectFaculty.innerHTML = '<option value="">Sélectionner</option>';
+      (Array.isArray(faculties) ? faculties : []).forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        selectFaculty.appendChild(opt);
+      });
+
+      // Fonction pour charger promotions et départements selon la faculté sélectionnée
+      async function loadPromotionsAndDepartments(facultyId) {
+        const selectPromotion = document.getElementById('userPromotion');
+        const selectDepartment = document.getElementById('userDepartment');
+        if (!facultyId) {
+          selectPromotion.innerHTML = '<option value="">Sélectionner</option>';
+          selectDepartment.innerHTML = '<option value="">Sélectionner</option>';
+          return;
+        }
+        // Promotions
+        const resProm = await fetch(`/api/faculties/${facultyId}/promotions`);
+        const promotions = await resProm.json();
+        selectPromotion.innerHTML = '<option value="">Sélectionner</option>' + (Array.isArray(promotions) ? promotions.map(p => `<option value="${p.id}">${p.name}</option>`).join('') : '');
+        // Départements
+        const resDept = await fetch(`/api/faculties/${facultyId}/departments`);
+        const departments = await resDept.json();
+        selectDepartment.innerHTML = '<option value="">Sélectionner</option>' + (Array.isArray(departments) ? departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('') : '');
+      }
+
+      selectFaculty.addEventListener('change', function() {
+        loadPromotionsAndDepartments(this.value);
+      });
+
+      // Préremplir les champs si édition
+      if (mode === 'edit' && userObj) {
+        document.getElementById('userModalTitle').textContent = 'Éditer l\'utilisateur';
+        document.getElementById('userId').value = userObj.id;
+        document.getElementById('userName').value = userObj.name;
+        document.getElementById('userEmail').value = userObj.email;
+        selectRole.value = userObj.role_id;
+        selectFaculty.value = userObj.faculty && userObj.faculty.id ? userObj.faculty.id : '';
+        // Charger promotions et départements liés à la faculté de l'utilisateur
+        loadPromotionsAndDepartments(selectFaculty.value).then(() => {
+          selectPromotion.value = userObj.promotion && userObj.promotion.id ? userObj.promotion.id : '';
+          selectDepartment.value = userObj.department && userObj.department.id ? userObj.department.id : '';
+        });
+      } else {
+        document.getElementById('userModalTitle').textContent = 'Ajouter un utilisateur';
+        loadPromotionsAndDepartments('');
+      }
+      // Afficher/masquer les champs selon le rôle
+      function toggleStudentFields() {
+        const selectedRoleId = selectRole.value;
+        const selectedRole = roles.find(r => r.id == selectedRoleId);
+        document.getElementById('studentFields').style.display = (selectedRole && selectedRole.name === 'student') ? '' : 'none';
+      }
+      selectRole.addEventListener('change', toggleStudentFields);
+      toggleStudentFields();
+    });
+  });
+}
+function closeUserModal() {
+  document.getElementById('userModal').classList.add('hidden');
+}
+document.getElementById('userForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('userId').value;
+  const first_name = document.getElementById('userFirstName').value.trim();
+  const last_name = document.getElementById('userLastName').value.trim();
+  const email = document.getElementById('userEmail').value.trim();
+  const password = document.getElementById('userPassword').value;
+  const role_id = document.getElementById('userRole').value;
+  const faculty_id = document.getElementById('userFaculty').value;
+  // Validation basique
+  if (!first_name || !last_name || !email || !password || !role_id) {
+    alert('Tous les champs obligatoires doivent être remplis.');
+    return;
+  }
+  let payload = { first_name, last_name, email, password, faculty_id };
+  // Récupérer le nom du rôle
+  const selectedRole = Array.isArray(allRoles) ? allRoles.find(r => r.id == role_id) : null;
+  if (selectedRole) {
+    payload.role = selectedRole.name;
+  }
+  if (selectedRole && selectedRole.name === 'student') {
+    const promotion_id = document.getElementById('userPromotion').value;
+    const department_id = document.getElementById('userDepartment').value;
+    if (!promotion_id || !department_id) {
+      alert('Promotion et département sont obligatoires pour les étudiants.');
+      return;
+    }
+    payload.promotion_id = promotion_id;
+    payload.department_id = department_id;
+  }
+  let url = '/api/auth/register';
+  let method = 'POST';
+  // Ajout uniquement, pas d'édition via register
+  if (id) {
+    alert('L\'édition d\'utilisateur ne passe pas par cette méthode.');
+    return;
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(async res => {
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Erreur lors de l\'opération.');
+        return;
+      }
+      closeUserModal();
+      loadUsers();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+function deleteUser(userId) {
+  if (!confirm('Supprimer cet utilisateur ?')) return;
+  fetch(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadUsers();
+      alert(data.message || 'Utilisateur supprimé !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+</script>
+{% endblock %}

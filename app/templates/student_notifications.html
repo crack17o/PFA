@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8 max-w-2xl">
+  <h1 class="text-3xl font-bold mb-6">Notifications</h1>
+  <ul id="notifications" class="list-disc pl-6 text-lg"></ul>
+</div>
+<script>
+// Récupère les notifications de l'étudiant
+fetch('/api/student/notifications')
+  .then(res => res.json())
+  .then(data => {
+    const ul = document.getElementById('notifications');
+    ul.innerHTML = '';
+    (data.notifications || []).forEach(n => {
+      const li = document.createElement('li');
+      li.textContent = n;
+      ul.appendChild(li);
+    });
+  });
+</script>
+{% endblock %}

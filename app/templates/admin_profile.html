@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Profil Administrateur</h1>
+  <div class="max-w-lg mx-auto bg-white rounded-lg shadow-lg p-8">
+    <form id="adminProfileForm" class="space-y-4">
+      <div class="flex gap-2">
+        <div class="w-1/2">
+          <label class="block mb-2">Prénom :</label>
+          <input type="text" id="profileFirstName" class="w-full border rounded px-3 py-2" required>
+        </div>
+        <div class="w-1/2">
+          <label class="block mb-2">Nom :</label>
+          <input type="text" id="profileLastName" class="w-full border rounded px-3 py-2" required>
+        </div>
+      </div>
+      <label class="block mb-2">Email :</label>
+      <input type="email" id="profileEmail" class="w-full border rounded px-3 py-2" required disabled>
+      <label class="block mb-2">Rôle :</label>
+      <input type="text" id="profileRole" class="w-full border rounded px-3 py-2" required disabled>
+      <div id="profileFacultyDiv" style="display:none;">
+        <label class="block mb-2">Faculté :</label>
+        <input type="text" id="profileFaculty" class="w-full border rounded px-3 py-2" disabled>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Enregistrer</button>
+      </div>
+    </form>
+    <div id="profileMsg" class="mt-4 text-center text-sm"></div>
+  </div>
+</div>
+<script>
+async function loadAdminProfile() {
+  const res = await fetch('/api/user/profile');
+  const data = await res.json();
+  if (data.error) {
+    document.getElementById('profileMsg').textContent = data.error;
+    document.getElementById('profileMsg').className = 'mt-4 text-red-600 text-center text-sm';
+    return;
+  }
+  document.getElementById('profileFirstName').value = data.first_name || '';
+  document.getElementById('profileLastName').value = data.last_name || '';
+  document.getElementById('profileEmail').value = data.email || '';
+  document.getElementById('profileRole').value = data.role || '';
+  if (data.faculty_name) {
+    document.getElementById('profileFacultyDiv').style.display = '';
+    document.getElementById('profileFaculty').value = data.faculty_name;
+  } else {
+    document.getElementById('profileFacultyDiv').style.display = 'none';
+  }
+}
+loadAdminProfile();
+document.getElementById('adminProfileForm').onsubmit = async function(e) {
+  e.preventDefault();
+  const first_name = document.getElementById('profileFirstName').value;
+  const last_name = document.getElementById('profileLastName').value;
+  const res = await fetch('/api/admin/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ first_name, last_name })
+  });
+  const data = await res.json();
+  const msg = document.getElementById('profileMsg');
+  if (res.ok) {
+    msg.textContent = data.message || 'Profil mis à jour.';
+    msg.className = 'mt-4 text-green-600 text-center text-sm';
+  } else {
+    msg.textContent = data.error || 'Erreur lors de la mise à jour.';
+    msg.className = 'mt-4 text-red-600 text-center text-sm';
+  }
+};
+</script>
+{% endblock %}

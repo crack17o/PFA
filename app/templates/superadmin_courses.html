@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des cours</h1>
+  <div class="flex justify-end mb-4">
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openCourseModal('add')">Ajouter un cours</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Nom</th>
+        <th class="py-2 px-4">Département</th>
+        <th class="py-2 px-4">Faculté</th>
+        <th class="py-2 px-4">Crédits</th>
+        <th class="py-2 px-4">Professeurs</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+  <tbody id="courses-list"></tbody>
+  </table>
+  <!-- Modal assignation professeur -->
+  <div id="assignProfModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 class="text-xl font-bold mb-4">Assigner un professeur</h2>
+      <form id="assignProfForm">
+        <input type="hidden" id="assignCourseId">
+        <label class="block mb-2">Professeur :</label>
+        <select id="profSelect" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeAssignProfModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Assigner</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Modal Ajout/Édition Cours -->
+  <div id="courseModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="courseModalTitle" class="text-xl font-bold mb-4">Ajouter un cours</h2>
+      <form id="courseForm">
+        <input type="hidden" id="courseId">
+        <label class="block mb-2">Nom :</label>
+        <input type="text" id="courseName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Crédits :</label>
+        <input type="number" id="courseCredits" class="w-full border rounded px-3 py-2 mb-4" min="1" required>
+        <label class="block mb-2">Département :</label>
+        <select id="courseDepartment" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Faculté :</label>
+        <select id="courseFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Promotion :</label>
+        <select id="coursePromotion" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <label class="block mb-2">Semestre :</label>
+        <select id="courseSemester" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeCourseModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function loadCourses() {
+  fetch('/api/admin/courses')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById('courses-list');
+      tbody.innerHTML = '';
+      (Array.isArray(data) ? data : []).forEach(c => {
+        // Affichage des professeurs assignés
+        let profs = '';
+        if (Array.isArray(c.professors) && c.professors.length > 0) {
+          profs = c.professors.map(p => `<span class='inline-block bg-gray-200 rounded px-2 py-1 mr-1 mb-1'>${p.name} <button class='text-xs text-red-600' onclick='unassignProf("${c.id}", "${p.id}")'>Retirer</button></span>`).join('');
+        } else {
+          profs = `<button class='bg-blue-500 text-white px-2 py-1 rounded text-xs' onclick='openAssignProfModal("${c.id}")'>Assigner prof</button>`;
+        }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class='py-2 px-4'>${c.name}</td><td class='py-2 px-4'>${c.department_name || ''}</td><td class='py-2 px-4'>${c.faculty_name || ''}</td><td class='py-2 px-4'>${c.credits || ''}</td><td class='py-2 px-4'>${profs}</td><td class='py-2 px-4'><button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteCourse("${c.id}")'>Supprimer</button></td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+loadCourses();
+
+function openAssignProfModal(courseId) {
+  document.getElementById('assignProfModal').classList.remove('hidden');
+  document.getElementById('assignProfForm').reset();
+  document.getElementById('assignCourseId').value = courseId;
+  // Charger la liste des utilisateurs et filtrer les professeurs
+  fetch('/api/admin/users')
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById('profSelect');
+      select.innerHTML = '<option value="">Sélectionner</option>';
+      (Array.isArray(data) ? data : []).filter(u => u.role === 'prof').forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.email;
+        select.appendChild(opt);
+      });
+    });
+}
+function closeAssignProfModal() {
+  document.getElementById('assignProfModal').classList.add('hidden');
+}
+document.getElementById('assignProfForm').onsubmit = function(e) {
+  e.preventDefault();
+  const courseId = document.getElementById('assignCourseId').value;
+  const professorId = document.getElementById('profSelect').value;
+  fetch(`/api/admin/courses/${courseId}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ professor_id: professorId })
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeAssignProfModal();
+      loadCourses();
+      alert(data.message || 'Professeur assigné !');
+    })
+    .catch(() => alert('Erreur lors de l\'assignation.'));
+};
+function unassignProf(courseId, professorId) {
+  if (!confirm('Retirer ce professeur du cours ?')) return;
+  fetch(`/api/admin/courses/${courseId}/unassign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ professor_id: professorId })
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadCourses();
+      alert(data.message || 'Professeur retiré !');
+    })
+    .catch(() => alert('Erreur lors du retrait.'));
+}
+async function loadFaculties() {
+  const selectFaculty = document.getElementById('courseFaculty');
+  selectFaculty.innerHTML = '<option value="">Sélectionner</option>';
+  const res = await fetch('/api/faculties');
+  const faculties = await res.json();
+  (Array.isArray(faculties) ? faculties : []).forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name;
+    selectFaculty.appendChild(opt);
+  });
+  selectFaculty.disabled = false;
+  selectFaculty.hidden = false;
+}
+
+async function loadPromotions(facultyId) {
+  const selectPromotion = document.getElementById('coursePromotion');
+  selectPromotion.innerHTML = '<option value="">Sélectionner</option>';
+  if (!facultyId) return;
+  const res = await fetch(`/api/faculties/${facultyId}/promotions`);
+  const promotions = await res.json();
+  (Array.isArray(promotions) ? promotions : []).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    selectPromotion.appendChild(opt);
+  });
+}
+
+async function loadDepartments(facultyId) {
+  const selectDept = document.getElementById('courseDepartment');
+  selectDept.innerHTML = '<option value="">Sélectionner</option>';
+  if (!facultyId) return;
+  const res = await fetch(`/api/faculties/${facultyId}/departments`);
+  const departments = await res.json();
+  (Array.isArray(departments) ? departments : []).forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    selectDept.appendChild(opt);
+  });
+}
+
+async function loadSemesters() {
+  const selectSemester = document.getElementById('courseSemester');
+  selectSemester.innerHTML = '<option value="">Sélectionner</option>';
+  const res = await fetch('/api/superadmin/semesters');
+  const semesters = await res.json();
+  (Array.isArray(semesters) ? semesters : []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    selectSemester.appendChild(opt);
+  });
+}
+
+function openCourseModal() {
+  document.getElementById('courseModal').classList.remove('hidden');
+  document.getElementById('courseForm').reset();
+  document.getElementById('courseId').value = '';
+  loadFaculties().then(() => {
+    const selectFaculty = document.getElementById('courseFaculty');
+    // Charger départements et promotions selon la faculté sélectionnée
+    selectFaculty.addEventListener('change', async function() {
+      await loadDepartments(this.value);
+      await loadPromotions(this.value);
+    });
+    // Charger initialement les départements et promotions si une faculté est sélectionnée
+    if (selectFaculty.value) {
+      loadDepartments(selectFaculty.value);
+      loadPromotions(selectFaculty.value);
+    } else {
+      document.getElementById('courseDepartment').innerHTML = '<option value="">Sélectionner</option>';
+      document.getElementById('coursePromotion').innerHTML = '<option value="">Sélectionner</option>';
+    }
+  });
+  loadSemesters();
+  document.getElementById('courseModalTitle').textContent = 'Ajouter un cours';
+}
+function closeCourseModal() {
+  document.getElementById('courseModal').classList.add('hidden');
+}
+document.getElementById('courseForm').onsubmit = function(e) {
+  e.preventDefault();
+  const name = document.getElementById('courseName').value;
+  const credits = document.getElementById('courseCredits').value;
+  const department_id = document.getElementById('courseDepartment').value;
+  const promotion_id = document.getElementById('coursePromotion').value;
+  const semester_id = document.getElementById('courseSemester').value;
+  const faculty_id = document.getElementById('courseFaculty').value;
+  const payload = { name, credits, department_id, promotion_id, faculty_id, semester_id };
+  fetch('/api/admin/courses', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeCourseModal();
+      loadCourses();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+function deleteCourse(courseId) {
+  if (!confirm('Supprimer ce cours ?')) return;
+  fetch(`/api/admin/courses/${courseId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadCourses();
+      alert(data.message || 'Cours supprimé !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+</script>
+{% endblock %}

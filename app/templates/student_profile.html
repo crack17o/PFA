@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8 max-w-lg">
+  <h1 class="text-3xl font-bold mb-6">Mon profil</h1>
+  <form id="profile-form" class="bg-white rounded-lg shadow p-6 flex flex-col gap-4">
+    <label>Email
+      <input type="email" id="email" class="border rounded px-3 py-2 w-full" required>
+    </label>
+    <label>Mot de passe actuel
+      <input type="password" id="old_password" class="border rounded px-3 py-2 w-full">
+    </label>
+    <label>Nouveau mot de passe
+      <input type="password" id="new_password" class="border rounded px-3 py-2 w-full">
+    </label>
+    <label class="flex items-center gap-2">
+      <input type="checkbox" id="2fa"> <span id="2fa-label">Activer la double authentification (2FA)</span>
+    </label>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Mettre à jour</button>
+  </form>
+  <div id="profile-msg" class="mt-4 text-green-600 font-semibold"></div>
+</div>
+<script>
+fetch('/api/user/profile')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('email').value = data.email;
+    document.getElementById('2fa').checked = data.is_2fa_enabled;
+    update2faLabel(data.is_2fa_enabled);
+  });
+
+function update2faLabel(enabled) {
+  const label = document.getElementById('2fa-label');
+  if (enabled) {
+    label.textContent = '2FA activé';
+    label.classList.add('text-green-600');
+    label.classList.remove('text-gray-600');
+  } else {
+    label.textContent = '2FA désactivé';
+    label.classList.add('text-gray-600');
+    label.classList.remove('text-green-600');
+  }
+}
+document.getElementById('profile-form').onsubmit = function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const old_password = document.getElementById('old_password').value;
+  const new_password = document.getElementById('new_password').value;
+  const enable2fa = document.getElementById('2fa').checked;
+  fetch('/api/user/profile', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email})
+  }).then(res => res.json()).then(data => {
+    document.getElementById('profile-msg').textContent = data.message;
+  });
+  if (old_password && new_password) {
+    fetch('/api/user/profile/password', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({old_password, new_password})
+    }).then(res => res.json()).then(data => {
+      document.getElementById('profile-msg').textContent = data.message;
+    });
+  }
+  fetch('/api/user/profile/2fa', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({enable: enable2fa})
+  }).then(res => res.json()).then(data => {
+    document.getElementById('profile-msg').textContent = data.message;
+    update2faLabel(data.is_2fa_enabled);
+  });
+};
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Gestion des départements</h1>
+  <div class="flex justify-between mb-4 items-center">
+    <div>
+      <label for="filterFaculty" class="mr-2 font-semibold">Filtrer par faculté :</label>
+      <select id="filterFaculty" class="border rounded px-3 py-2">
+      </select>
+    </div>
+    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openDepartmentModal('add')">Ajouter un département</button>
+  </div>
+  <table class="min-w-full bg-white rounded-lg shadow mb-8">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Nom</th>
+        <th class="py-2 px-4">Faculté</th>
+        <th class="py-2 px-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="departments-list"></tbody>
+  </table>
+  <!-- Modal Ajout/Édition Département -->
+  <div id="departmentModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 id="departmentModalTitle" class="text-xl font-bold mb-4">Ajouter un département</h2>
+      <form id="departmentForm">
+        <input type="hidden" id="departmentId">
+        <label class="block mb-2">Nom :</label>
+        <input type="text" id="departmentName" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2">Faculté :</label>
+        <select id="departmentFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeDepartmentModal()">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+let allDepartments = [];
+let allFaculties = [];
+
+function loadFacultiesForFilter() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      allFaculties = Array.isArray(data) ? data : [];
+      const select = document.getElementById('filterFaculty');
+      allFaculties.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    });
+}
+
+function loadDepartments() {
+  fetch('/api/departments')
+    .then(res => res.json())
+    .then(data => {
+      allDepartments = Array.isArray(data) ? data : [];
+      renderDepartments();
+    });
+}
+
+function renderDepartments() {
+  const facultyId = document.getElementById('filterFaculty').value;
+  const tbody = document.getElementById('departments-list');
+  tbody.innerHTML = '';
+  let filtered = allDepartments;
+  if (facultyId) {
+    filtered = filtered.filter(d => d.faculty_id == facultyId);
+  }
+  filtered.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${d.name}</td><td class='py-2 px-4'>${d.faculty_name || ''}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openDepartmentModal("edit", ${JSON.stringify(d)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteDepartment("${d.id}")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('filterFaculty').addEventListener('change', renderDepartments);
+
+loadFacultiesForFilter();
+loadDepartments();
+function openDepartmentModal(mode, departmentObj) {
+  document.getElementById('departmentModal').classList.remove('hidden');
+  document.getElementById('departmentForm').reset();
+  document.getElementById('departmentId').value = '';
+  // Charger les facultés dynamiquement
+  fetch('/api/faculties').then(res => res.json()).then(data => {
+    const select = document.getElementById('departmentFaculty');
+    select.innerHTML = '';
+    (Array.isArray(data) ? data : []).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      select.appendChild(opt);
+    });
+    if (mode === 'edit' && departmentObj) {
+      document.getElementById('departmentModalTitle').textContent = 'Éditer le département';
+      document.getElementById('departmentId').value = departmentObj.id;
+      document.getElementById('departmentName').value = departmentObj.name;
+      select.value = departmentObj.faculty_id;
+    } else {
+      document.getElementById('departmentModalTitle').textContent = 'Ajouter un département';
+    }
+  });
+}
+function closeDepartmentModal() {
+  document.getElementById('departmentModal').classList.add('hidden');
+}
+document.getElementById('departmentForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('departmentId').value;
+  const name = document.getElementById('departmentName').value;
+  const faculty_id = document.getElementById('departmentFaculty').value;
+  const payload = { name, faculty_id };
+  let url = '/api/departments';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.json())
+    .then(data => {
+      closeDepartmentModal();
+      loadDepartments();
+      alert(data.message || 'Opération réussie !');
+    })
+    .catch(() => alert('Erreur lors de l\'opération.'));
+};
+function deleteDepartment(departmentId) {
+  if (!confirm('Supprimer ce département ?')) return;
+  fetch(`/api/departments/${departmentId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadDepartments();
+      alert(data.message || 'Département supprimé !');
+    })
+    .catch(() => alert('Erreur lors de la suppression.'));
+}
+</script>
+{% endblock %}

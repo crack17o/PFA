@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8 max-w-2xl">
+  <h1 class="text-3xl font-bold mb-6">Historique de mes conversations avec le chatbot</h1>
+  <div id="chat-history"></div>
+</div>
+<script>
+fetch('/api/chat/history/all', {method: 'GET'})
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById('chat-history');
+    (data.conversations || []).forEach(conv => {
+      const div = document.createElement('div');
+      div.className = 'mb-6 p-4 bg-white rounded shadow';
+      div.innerHTML = `<h2 class='text-xl font-bold mb-2'>Conversation #${conv.id}</h2>`;
+      (conv.messages || []).forEach(msg => {
+        div.innerHTML += `<div class='mb-1'><span class='font-semibold'>${msg.sender === 'user' ? 'Moi' : 'Bot'}:</span> ${msg.content}</div>`;
+      });
+      container.appendChild(div);
+    });
+  });
+</script>
+{% endblock %}

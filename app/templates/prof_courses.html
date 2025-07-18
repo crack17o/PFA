@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+    <h2 class="text-2xl font-bold text-blue-600 mb-4">Mes cours</h2>
+    <div id="coursesList" class="space-y-4"></div>
+</div>
+<script>
+async function loadCourses() {
+    const res = await fetch('/api/prof/courses');
+    const data = await res.json();
+    const container = document.getElementById('coursesList');
+    if (!data.length) {
+        container.innerHTML = '<div class="text-gray-500">Aucun cours attribué.</div>';
+        return;
+    }
+    data.forEach(c => {
+        container.innerHTML += `<div class="bg-white rounded shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
+            <div class="flex-1">
+                <div class="font-semibold text-blue-600">${c.name}</div>
+                <div class="text-gray-700">Crédits : ${c.credits}</div>
+            </div>
+            <a href="/prof/courses/${c.id}/documents/view" class="bg-orange-400 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Documents</a>
+        </div>`;
+    });
+}
+window.addEventListener('DOMContentLoaded', loadCourses);
+</script>
+{% endblock %}

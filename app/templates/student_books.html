@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Livres et documents</h1>
+  <table class="min-w-full bg-white rounded-lg shadow">
+    <thead>
+      <tr>
+        <th class="py-2 px-4">Titre</th>
+        <th class="py-2 px-4">Auteur</th>
+        <th class="py-2 px-4">Télécharger</th>
+      </tr>
+    </thead>
+    <tbody id="books-list"></tbody>
+  </table>
+</div>
+<script>
+function loadBooks() {
+  fetch('/api/books')
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById('books-list');
+      tbody.innerHTML = '';
+      if (data.error) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-red-500 py-4 text-center">${data.error}</td></tr>`;
+        return;
+      }
+      (Array.isArray(data) ? data : []).forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class='py-2 px-4'>${b.title}</td><td class='py-2 px-4'>${b.author}</td><td class='py-2 px-4'><a href='${b.file_url}' class='bg-green-500 text-white px-2 py-1 rounded' target='_blank'>Télécharger</a></td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+loadBooks();
+</script>
+{% endblock %}

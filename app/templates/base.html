@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniMate</title>
+    <style>
+        text-orange { color: #f59e42 !important; }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" href="/static/logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-blue-500 via-white to-orange-400 min-h-screen flex flex-col">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between px-8 py-4 bg-white shadow-md relative">
+        <div class="flex items-center justify-between w-full md:w-auto gap-3">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-graduation-cap text-blue-600" style="font-size:2.5rem;"></i>
+                <span class="text-2xl font-bold text-blue-600">UniMate</span>
+            </div>
+            <button id="menu-btn" class="md:hidden text-blue-600 focus:outline-none transition-all duration-300" aria-label="Ouvrir le menu">
+                <span id="menu-icon" class="relative block w-8 h-8">
+                    <span class="absolute top-1/2 left-0 w-8 h-1 bg-blue-600 rounded transition-all duration-300 transform -translate-y-2"></span>
+                    <span class="absolute top-1/2 left-0 w-8 h-1 bg-blue-600 rounded transition-all duration-300"></span>
+                    <span class="absolute top-1/2 left-0 w-8 h-1 bg-blue-600 rounded transition-all duration-300 transform translate-y-2"></span>
+                </span>
+            </button>
+        </div>
+        <nav id="nav-menu" class="fixed top-0 left-0 h-screen w-0 bg-white z-30 flex flex-col justify-center items-center gap-8 overflow-hidden transition-all duration-500
+            md:static md:bg-transparent md:shadow-none md:w-auto md:h-auto md:pt-0 md:gap-6 md:flex-row md:z-auto md:opacity-100 md:transform-none">
+            {% if session.get('user_id') and session.get('role') == 'student' %}
+                <a href="/student/dashboard" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Dashboard</a>
+                <a href="/student/courses" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Mes cours</a>
+                <a href="/student/books" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Livres</a>
+                <a href="/student/profile" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Profil</a>
+                <a href="/student/chatbot" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Chatbot</a>
+                <a href="/student/notifications" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Notifications</a>
+                <a href="/logout" class="text-orange-500 hover:text-blue-600 font-semibold text-2xl md:text-base" style="color: #f59e42 !important;">Déconnexion</a>
+            {% elif session.get('user_id') and session.get('role') == 'prof' %}
+                <a href="/prof/dashboard" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Dashboard</a>
+                <a href="/prof/courses" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Mes cours</a>
+                <a href="/prof/documents" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Documents</a>
+                <a href="/prof/profile" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Profil</a>
+                <a href="/logout" class="text-orange-500 hover:text-blue-600 font-semibold text-2xl md:text-base" style="color: #f59e42 !important;">Déconnexion</a>
+            {% elif session.get('user_id') and session.get('role') == 'faculty_admin' %}
+                <a href="/faculty/dashboard" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Dashboard</a>
+                <a href="/faculty/courses" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Cours</a>
+                <a href="/faculty/books" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Livres</a>
+                <a href="/faculty/users" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Utilisateurs</a>
+                <a href="/faculty/department" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Départements</a>
+                <a href="/faculty/promotion" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Promotions</a>
+                <a href="/faculty/profile" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Profil</a>
+                <a href="/logout" class="text-orange-500 hover:text-blue-600 font-semibold text-2xl md:text-base" style="color: #f59e42 !important;">Déconnexion</a>
+            {% elif session.get('user_id') and session.get('role') == 'superadmin' %}
+                <a href="/admin/dashboard" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Dashboard</a>
+                <a href="/admin/users" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Utilisateurs</a>
+                <a href="/admin/academicyears" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Années académiques</a>
+                <a href="/admin/faculties" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Facultés</a>
+                <a href="/admin/promotions" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Promotions</a>
+                <a href="/admin/departments" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Départements</a>
+                <a href="/admin/courses" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Cours</a>
+                <a href="/admin/books" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Livres</a>
+                <a href="/logout" class="text-orange-500 hover:text-blue-600 font-semibold text-2xl md:text-base" style="color: #f59e42 !important;">Déconnexion</a>
+            {% else %}
+                <a href="/" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Accueil</a>
+                <a href="/about" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">À propos</a>
+                <a href="/login" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Connexion</a>
+                <a href="/register" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Inscription</a>
+            {% endif %}
+        </nav>
+        <div id="nav-overlay" class="fixed inset-0 bg-black/30 z-20 hidden md:hidden"></div>
+    </header>
+    <script>
+        const menuBtn = document.getElementById('menu-btn');
+        const navMenu = document.getElementById('nav-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const navOverlay = document.getElementById('nav-overlay');
+        let menuOpen = false;
+
+        function animateIcon(open) {
+            const bars = menuIcon.querySelectorAll('span');
+            if (open) {
+                bars[0].style.transform = 'rotate(45deg) translateY(8px)';
+                bars[1].style.opacity = '0';
+                bars[2].style.transform = 'rotate(-45deg) translateY(-8px)';
+            } else {
+                bars[0].style.transform = 'none';
+                bars[1].style.opacity = '1';
+                bars[2].style.transform = 'none';
+            }
+        }
+
+        function openMenu() {
+            if (window.innerWidth < 768) {
+                navMenu.style.width = '70vw';
+                navMenu.style.left = '0';
+                navMenu.style.right = '';
+                navMenu.style.height = '100vh';
+                navMenu.style.boxShadow = '0 0 0 100vw rgba(0,0,0,0.3)';
+                navOverlay.classList.remove('hidden');
+                animateIcon(true);
+                document.body.style.overflow = 'hidden';
+                menuOpen = true;
+            }
+        }
+        function closeMenu() {
+            if (window.innerWidth < 768) {
+                navMenu.style.width = '0';
+                navMenu.style.left = '0';
+                navMenu.style.right = '';
+                navMenu.style.height = '100vh';
+                navMenu.style.boxShadow = 'none';
+                navOverlay.classList.add('hidden');
+                animateIcon(false);
+                document.body.style.overflow = '';
+                menuOpen = false;
+            }
+        }
+        menuBtn.addEventListener('click', () => {
+            if (!menuOpen) {
+                openMenu();
+            } else {
+                closeMenu();
+            }
+        });
+        navOverlay.addEventListener('click', closeMenu);
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                closeMenu();
+            }
+        });
+    </script>
+    <main class="flex-1 flex flex-col items-center justify-center">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="bg-white text-center py-4 shadow-inner mt-auto">
+        <span class="text-gray-500">© 2025 UniMate. Tous droits réservés.</span>
+    </footer>
+</body>
+</html>

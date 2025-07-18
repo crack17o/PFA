@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto p-6">
+    <h2 class="text-2xl font-bold text-blue-600 mb-4">Mon profil</h2>
+    <form id="profileForm" class="space-y-4">
+        <div>
+            <label class="block text-gray-700">Email</label>
+            <input type="email" name="email" id="emailInput" required class="w-full px-4 py-2 border rounded">
+            <label class="block text-gray-700">Mot de passe actuel</label>
+            <input type="password" name="old_password" id="oldPasswordInput" class="w-full px-4 py-2 border rounded">
+            <label class="block text-gray-700">Nouveau mot de passe</label>
+            <input type="password" name="new_password" id="newPasswordInput" class="w-full px-4 py-2 border rounded">
+        </div>
+        <button type="submit" class="w-full bg-orange-400 text-white py-2 rounded font-semibold hover:bg-blue-600 transition">Mettre à jour</button>
+    </form>
+    <div id="profileMsg" class="mt-4 text-center text-sm"></div>
+    <div class="mt-6">
+        <label class="block text-gray-700 mb-2">Double authentification (2FA)</label>
+        <button id="toggle2faBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Activer/Désactiver 2FA</button>
+        <span id="2faStatus" class="ml-2 text-sm"></span>
+    </div>
+</div>
+<script>
+let current2fa = false;
+function update2faStatus(enabled) {
+    const status = document.getElementById('2faStatus');
+    if (enabled) {
+        status.textContent = 'Activé';
+        status.classList.add('text-green-600');
+        status.classList.remove('text-gray-600');
+    } else {
+        status.textContent = 'Désactivé';
+        status.classList.add('text-gray-600');
+        status.classList.remove('text-green-600');
+    }
+}
+async function loadProfile() {
+    const res = await fetch('/api/user/profile');
+    const data = await res.json();
+    document.getElementById('emailInput').value = data.email;
+    current2fa = data.is_2fa_enabled;
+    update2faStatus(current2fa);
+}
+document.getElementById('profileForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const email = form.email.value;
+    const old_password = form.old_password.value || document.getElementById('oldPasswordInput').value;
+    const new_password = form.new_password.value || document.getElementById('newPasswordInput').value;
+    const msg = document.getElementById('profileMsg');
+    msg.textContent = '';
+    if (email) {
+        const res = await fetch('/api/user/profile', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email})
+        });
+        if (res.ok) msg.textContent = 'Email mis à jour.';
+    }
+    if (old_password && new_password) {
+        const res = await fetch('/api/user/profile/password', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({old_password, new_password})
+        });
+        const data = await res.json();
+        msg.textContent = data.message || 'Mot de passe mis à jour.';
+    }
+});
+document.getElementById('toggle2faBtn').addEventListener('click', async function() {
+    const res = await fetch('/api/user/profile/2fa', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({enable: !current2fa})
+    });
+    if (res.ok) {
+        const data = await res.json();
+        current2fa = data.is_2fa_enabled;
+        update2faStatus(current2fa);
+    }
+});
+window.addEventListener('DOMContentLoaded', loadProfile);
+</script>
+{% endblock %}

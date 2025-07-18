@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Dashboard Admin</h1>
+  <div id="admin-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <a href="/faculty/users" class="block bg-blue-600 text-white rounded-lg p-6 text-center font-bold hover:bg-blue-700">Gestion des utilisateurs</a>
+    <a href="/faculty/courses" class="block bg-green-600 text-white rounded-lg p-6 text-center font-bold hover:bg-green-700">Gestion des cours</a>
+    <a href="/faculty/promotions" class="block bg-purple-600 text-white rounded-lg p-6 text-center font-bold hover:bg-purple-700">Gestion des promotions</a>
+    <a href="/faculty/departments" class="block bg-yellow-600 text-white rounded-lg p-6 text-center font-bold hover:bg-yellow-700">Gestion des départements</a>
+    <a href="/faculty/books" class="block bg-gray-700 text-white rounded-lg p-6 text-center font-bold hover:bg-gray-800">Gestion des livres</a>
+  </div>
+</div>
+<script>
+function loadAdminStats() {
+  fetch('/api/admin/stats')
+    .then(res => res.json())
+    .then(data => {
+      const stats = [
+        { label: 'Utilisateurs', value: data.users },
+        { label: 'Cours', value: data.courses },
+        { label: 'Promotions', value: data.promotions },
+        { label: 'Départements', value: data.departments },
+        { label: 'Livres', value: data.books }
+      ];
+      const container = document.getElementById('admin-stats');
+      container.innerHTML = '';
+      stats.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded-lg shadow p-6 text-center';
+        div.innerHTML = `<div class='text-2xl font-bold mb-2'>${s.value}</div><div class='text-gray-600'>${s.label}</div>`;
+        container.appendChild(div);
+      });
+    });
+}
+loadAdminStats();
+</script>
+{% endblock %}

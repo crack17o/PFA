@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">Tableau de bord Super Admin</h1>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-2xl font-bold" id="usersCount">...</span>
+      <span class="text-gray-600">Utilisateurs</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-2xl font-bold" id="facultiesCount">...</span>
+      <span class="text-gray-600">Facultés</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-2xl font-bold" id="promotionsCount">...</span>
+      <span class="text-gray-600">Promotions</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-2xl font-bold" id="sessionsCount">...</span>
+      <span class="text-gray-600">Sessions</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-2xl font-bold" id="coursesCount">...</span>
+      <span class="text-gray-600">Cours</span>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+      <span class="text-2xl font-bold" id="booksCount">...</span>
+      <span class="text-gray-600">Livres</span>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <a href="/admin/users" class="block bg-blue-600 text-white rounded-lg p-6 text-center font-bold hover:bg-blue-700">Gérer les utilisateurs</a>
+    <a href="/admin/faculties" class="block bg-green-600 text-white rounded-lg p-6 text-center font-bold hover:bg-green-700">Gérer les facultés</a>
+    <a href="/admin/promotions" class="block bg-purple-600 text-white rounded-lg p-6 text-center font-bold hover:bg-purple-700">Gérer les promotions</a>
+    <a href="/admin/departments" class="block bg-yellow-600 text-white rounded-lg p-6 text-center font-bold hover:bg-yellow-700">Gérer les départements</a>
+    <a href="/admin/courses" class="block bg-pink-600 text-white rounded-lg p-6 text-center font-bold hover:bg-pink-700">Gérer les cours</a>
+    <a href="/admin/books" class="block bg-gray-800 text-white rounded-lg p-6 text-center font-bold hover:bg-gray-900">Gérer les livres</a>
+  </div>
+</div>
+<script>
+function loadStats() {
+  fetch('/api/stats/global')
+    .then(async res => {
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        document.getElementById('usersCount').textContent = 'Erreur';
+        document.getElementById('facultiesCount').textContent = 'Erreur';
+        document.getElementById('promotionsCount').textContent = 'Erreur';
+        document.getElementById('sessionsCount').textContent = 'Erreur';
+        document.getElementById('coursesCount').textContent = 'Erreur';
+        document.getElementById('booksCount').textContent = 'Erreur';
+        return;
+      }
+      if (data.error) {
+        document.getElementById('usersCount').textContent = 'Erreur';
+        document.getElementById('facultiesCount').textContent = 'Erreur';
+        document.getElementById('promotionsCount').textContent = 'Erreur';
+        document.getElementById('sessionsCount').textContent = 'Erreur';
+        document.getElementById('coursesCount').textContent = 'Erreur';
+        document.getElementById('booksCount').textContent = 'Erreur';
+        return;
+      }
+      const stats = data.global_stats || {};
+      document.getElementById('usersCount').textContent = stats.nb_users || '0';
+      document.getElementById('facultiesCount').textContent = stats.nb_faculties || '0';
+      document.getElementById('promotionsCount').textContent = stats.nb_promotions || '0';
+      document.getElementById('sessionsCount').textContent = stats.nb_sessions || '0';
+      document.getElementById('coursesCount').textContent = stats.nb_courses || '0';
+      document.getElementById('booksCount').textContent = stats.nb_books || '0';
+    })
+    .catch(() => {
+      document.getElementById('usersCount').textContent = 'Erreur';
+      document.getElementById('facultiesCount').textContent = 'Erreur';
+      document.getElementById('promotionsCount').textContent = 'Erreur';
+      document.getElementById('sessionsCount').textContent = 'Erreur';
+      document.getElementById('coursesCount').textContent = 'Erreur';
+      document.getElementById('booksCount').textContent = 'Erreur';
+    });
+}
+loadStats();
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md w-full mx-auto bg-white rounded-lg shadow-lg p-8">
+    <h2 class="text-2xl font-bold text-blue-600 mb-6 text-center">Connexion</h2>
+    <form id="loginForm" class="space-y-4">
+        <div>
+            <label class="block text-gray-700">Email</label>
+            <input type="email" name="email" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-gray-700">Mot de passe</label>
+            <input type="password" name="password" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="flex justify-between items-center">
+            <a href="/reset-password" class="text-orange-400 hover:underline">Mot de passe oublié ?</a>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-orange-400 transition">Se connecter</button>
+    </form>
+    <div id="loginMsg" class="mt-4 text-center text-sm"></div>
+    <p class="mt-4 text-center text-gray-600">Pas de compte ? <a href="/register" class="text-orange-400 hover:underline">Inscrivez-vous</a></p>
+    <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const email = form.email.value;
+        const password = form.password.value;
+        const msg = document.getElementById('loginMsg');
+        msg.textContent = '';
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                msg.textContent = data.message || 'Connexion réussie.';
+                msg.className = 'mt-4 text-green-600 text-center text-sm';
+                // Redirige ou affiche 2FA si nécessaire
+                if (data["2fa_required"]) {
+                    msg.textContent = 'Un code OTP a été envoyé à votre email.';
+                } else {
+                    const url = data.redirect_url || '/';
+                    setTimeout(() => window.location.href = url, 1000);
+                }
+            } else {
+                msg.textContent = data.error || 'Erreur de connexion.';
+                msg.className = 'mt-4 text-red-600 text-center text-sm';
+            }
+        } catch (err) {
+            msg.textContent = 'Erreur réseau.';
+            msg.className = 'mt-4 text-red-600 text-center text-sm';
+        }
+    });
+    </script>
+</div>
+{% endblock %}
