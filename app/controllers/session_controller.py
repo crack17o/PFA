@@ -38,3 +38,23 @@ def delete_session(session_id):
     db.session.delete(session_obj)
     db.session.commit()
     return jsonify({'message': 'Session deleted'})
+
+@session_bp.route('/sessions/<session_id>', methods=['GET'])
+def get_session(session_id):
+    user_id = flask_session.get('user_id')
+    user = User.query.get(user_id)
+    session_obj = Session.query.get(session_id)
+    if not user or not session_obj:
+        return jsonify({'error': 'Unauthorized'}), 401
+    # Restriction faculty_admin
+    if user.role.name == 'faculty_admin':
+        if not session_obj.course or session_obj.course.faculty_id != user.faculty_id:
+            return jsonify({'error': 'Unauthorized: faculty admin can only act on their own faculty'}), 403
+    if user.role.name not in ['prof', 'faculty_admin']:
+        return jsonify({'error': 'Forbidden'}), 403
+    return jsonify({
+        'id': session_obj.id,
+        'date': session_obj.date.isoformat() if session_obj.date else None,
+        'status': session_obj.status,
+        'course_id': session_obj.course_id
+    })

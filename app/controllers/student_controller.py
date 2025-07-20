@@ -97,3 +97,25 @@ def get_student_courses():
             'sessions': sessions
         })
     return jsonify({'courses': courses})
+
+@student_bp.route('/student/promotion/courses', methods=['GET'])
+def get_promotion_courses():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role.name != 'student' or not user.promotion_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    promotion = user.promotion
+    if not promotion:
+        return jsonify({'error': 'No promotion found'}), 404
+    courses = promotion.courses
+    result = []
+    for c in courses:
+        result.append({
+            'id': c.id,
+            'name': c.name,
+            'credits': c.credits,
+            'department_name': c.department.name if c.department else None,
+            'faculty_name': c.faculty.name if c.faculty else None,
+            'semester_name': c.semester.name if hasattr(c, 'semester') and c.semester else None
+        })
+    return jsonify({'courses': result})

@@ -17,6 +17,7 @@ class Department(db.Model):
     name = db.Column(db.String(64), nullable=False)
     faculty_id = db.Column(db.String(36), db.ForeignKey('faculties.id'), nullable=False)
     courses = db.relationship('Course', backref='department', lazy=True)
+    users = db.relationship('User', backref='department', lazy=True)
 
 class Promotion(db.Model):
     __tablename__ = 'promotions'
@@ -24,3 +25,4 @@ class Promotion(db.Model):
     name = db.Column(db.String(64), nullable=False)
     faculty_id = db.Column(db.String(36), db.ForeignKey('faculties.id'), nullable=False)
     courses = db.relationship('Course', backref='promotion', lazy=True)
+    users = db.relationship('User', backref='promotion', lazy=True)

@@ -8,6 +8,11 @@
       <select id="filterRole" class="border rounded px-3 py-2">
         <option value="">Tous</option>
       </select>
+      <label for="filterFaculty" class="font-semibold ml-4">Faculté :</label>
+      <select id="filterFaculty" class="border rounded px-3 py-2">
+        <option value="">Toutes</option>
+      </select>
+      <input id="searchName" type="text" class="border rounded px-3 py-2 ml-4" placeholder="Rechercher un nom..." />
     </div>
     <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openUserModal('add')">Ajouter un utilisateur</button>
   </div>
@@ -35,8 +40,7 @@
         <input type="text" id="userLastName" class="w-full border rounded px-3 py-2 mb-4" required>
         <label class="block mb-2">Email :</label>
         <input type="email" id="userEmail" class="w-full border rounded px-3 py-2 mb-4" required>
-        <label class="block mb-2">Mot de passe :</label>
-        <input type="password" id="userPassword" class="w-full border rounded px-3 py-2 mb-4" required>
+        <!-- Champ mot de passe supprimé pour édition -->
         <label class="block mb-2">Rôle :</label>
         <select id="userRole" class="w-full border rounded px-3 py-2 mb-4" required></select>
         <label class="block mb-2">Faculté :</label>
@@ -75,6 +79,21 @@ function loadRolesForFilter() {
     });
 }
 
+function loadFacultiesForFilter() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById('filterFaculty');
+      select.innerHTML = '<option value="">Toutes</option>';
+      (Array.isArray(data) ? data : []).forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    });
+}
+
 function loadUsers() {
   fetch('/api/admin/users')
     .then(res => res.json())
@@ -86,32 +105,47 @@ function loadUsers() {
 
 function renderUsers() {
   const role = document.getElementById('filterRole').value;
+  const faculty = document.getElementById('filterFaculty').value;
+  const search = document.getElementById('searchName').value.trim().toLowerCase();
   const tbody = document.getElementById('users-list');
   tbody.innerHTML = '';
   let filtered = allUsers;
   if (role) {
     filtered = filtered.filter(u => u.role === role);
   }
+  if (faculty) {
+    filtered = filtered.filter(u => u.faculty && (u.faculty.id == faculty || u.faculty_id == faculty));
+  }
+  if (search) {
+    filtered = filtered.filter(u => (u.name || '').toLowerCase().includes(search));
+  }
   filtered.forEach(u => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class='py-2 px-4'>${u.name}</td><td class='py-2 px-4'>${u.email}</td><td class='py-2 px-4'>${u.role}</td><td class='py-2 px-4'>${u.faculty && u.faculty.name ? u.faculty.name : ''}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openUserModal("edit", ${JSON.stringify(u)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteUser("${u.id}")'>Supprimer</button></td>`;
+    tr.innerHTML = `<td class='py-2 px-4'>${u.name}</td><td class='py-2 px-4'>${u.email}</td><td class='py-2 px-4'>${u.role}</td><td class='py-2 px-4'>${u.faculty && u.faculty.name ? u.faculty.name : ''}</td><td class='py-2 px-4'>
+      <button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openUserModal("edit", ${JSON.stringify(u)})'>Éditer</button>
+      <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteUser("${u.id}")'>Supprimer</button>
+      <button class='bg-blue-600 text-white px-2 py-1 rounded' onclick='resetUserPassword("${u.id}")'>Réinit. MDP</button>
+    </td>`;
     tbody.appendChild(tr);
   });
 }
 
 document.getElementById('filterRole').addEventListener('change', renderUsers);
+document.getElementById('filterFaculty').addEventListener('change', renderUsers);
+document.getElementById('searchName').addEventListener('input', renderUsers);
 
 loadRolesForFilter();
+loadFacultiesForFilter();
 loadUsers();
 function openUserModal(mode, userObj) {
   document.getElementById('userModal').classList.remove('hidden');
   document.getElementById('userForm').reset();
   document.getElementById('userId').value = '';
   // Charger les rôles dynamiquement
-  fetch('/api/roles').then(res => res.json()).then(roles => {
+  fetch('/api/roles').then(res => res.json()).then(rolesList => {
     const selectRole = document.getElementById('userRole');
     selectRole.innerHTML = '';
-    (Array.isArray(roles) ? roles : []).forEach(r => {
+    (Array.isArray(rolesList) ? rolesList : []).forEach(r => {
       const opt = document.createElement('option');
       opt.value = r.id;
       opt.textContent = r.name;
@@ -151,30 +185,40 @@ function openUserModal(mode, userObj) {
         loadPromotionsAndDepartments(this.value);
       });
 
+      // Afficher/masquer les champs selon le rôle
+      function toggleStudentFields() {
+        const selectedRoleId = selectRole.value;
+        const selectedRole = (Array.isArray(rolesList) ? rolesList : []).find(r => r.id == selectedRoleId);
+        document.getElementById('studentFields').style.display = (selectedRole && selectedRole.name === 'student') ? '' : 'none';
+      }
+      selectRole.addEventListener('change', toggleStudentFields);
+
       // Préremplir les champs si édition
       if (mode === 'edit' && userObj) {
         document.getElementById('userModalTitle').textContent = 'Éditer l\'utilisateur';
         document.getElementById('userId').value = userObj.id;
-        document.getElementById('userName').value = userObj.name;
-        document.getElementById('userEmail').value = userObj.email;
+        document.getElementById('userFirstName').value = userObj.first_name || '';
+        document.getElementById('userLastName').value = userObj.last_name || '';
+        document.getElementById('userEmail').value = userObj.email || '';
         selectRole.value = userObj.role_id;
         selectFaculty.value = userObj.faculty && userObj.faculty.id ? userObj.faculty.id : '';
         // Charger promotions et départements liés à la faculté de l'utilisateur
         loadPromotionsAndDepartments(selectFaculty.value).then(() => {
+          const selectPromotion = document.getElementById('userPromotion');
+          const selectDepartment = document.getElementById('userDepartment');
           selectPromotion.value = userObj.promotion && userObj.promotion.id ? userObj.promotion.id : '';
           selectDepartment.value = userObj.department && userObj.department.id ? userObj.department.id : '';
         });
       } else {
         document.getElementById('userModalTitle').textContent = 'Ajouter un utilisateur';
+        document.getElementById('userFirstName').value = '';
+        document.getElementById('userLastName').value = '';
+        document.getElementById('userEmail').value = '';
+        selectRole.value = '';
+        selectFaculty.value = '';
         loadPromotionsAndDepartments('');
       }
-      // Afficher/masquer les champs selon le rôle
-      function toggleStudentFields() {
-        const selectedRoleId = selectRole.value;
-        const selectedRole = roles.find(r => r.id == selectedRoleId);
-        document.getElementById('studentFields').style.display = (selectedRole && selectedRole.name === 'student') ? '' : 'none';
-      }
-      selectRole.addEventListener('change', toggleStudentFields);
+      // Toujours afficher/masquer les champs correctement à l'ouverture
       toggleStudentFields();
     });
   });
@@ -188,16 +232,9 @@ document.getElementById('userForm').onsubmit = function(e) {
   const first_name = document.getElementById('userFirstName').value.trim();
   const last_name = document.getElementById('userLastName').value.trim();
   const email = document.getElementById('userEmail').value.trim();
-  const password = document.getElementById('userPassword').value;
   const role_id = document.getElementById('userRole').value;
   const faculty_id = document.getElementById('userFaculty').value;
-  // Validation basique
-  if (!first_name || !last_name || !email || !password || !role_id) {
-    alert('Tous les champs obligatoires doivent être remplis.');
-    return;
-  }
-  let payload = { first_name, last_name, email, password, faculty_id };
-  // Récupérer le nom du rôle
+  let payload = { first_name, last_name, email, faculty_id };
   const selectedRole = Array.isArray(allRoles) ? allRoles.find(r => r.id == role_id) : null;
   if (selectedRole) {
     payload.role = selectedRole.name;
@@ -212,12 +249,20 @@ document.getElementById('userForm').onsubmit = function(e) {
     payload.promotion_id = promotion_id;
     payload.department_id = department_id;
   }
-  let url = '/api/auth/register';
-  let method = 'POST';
-  // Ajout uniquement, pas d'édition via register
-  if (id) {
-    alert('L\'édition d\'utilisateur ne passe pas par cette méthode.');
-    return;
+  let url, method;
+  if (!id) {
+    // Création
+    if (!first_name || !last_name || !email || !role_id) {
+      alert('Tous les champs obligatoires doivent être remplis.');
+      return;
+    }
+    payload.password = '123456789';
+    url = '/api/auth/register';
+    method = 'POST';
+  } else {
+    // Edition
+    url = `/api/admin/users/${id}`;
+    method = 'PUT';
   }
   fetch(url, {
     method,
@@ -236,6 +281,19 @@ document.getElementById('userForm').onsubmit = function(e) {
     })
     .catch(() => alert('Erreur lors de l\'opération.'));
 };
+
+function resetUserPassword(userId) {
+  if (!confirm('Réinitialiser le mot de passe de cet utilisateur à 12345789 ?')) return;
+  fetch(`/api/admin/users/${userId}/reset_password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message || 'Mot de passe réinitialisé !');
+    })
+    .catch(() => alert('Erreur lors de la réinitialisation du mot de passe.'));
+}
 function deleteUser(userId) {
   if (!confirm('Supprimer cet utilisateur ?')) return;
   fetch(`/api/admin/users/${userId}`, {

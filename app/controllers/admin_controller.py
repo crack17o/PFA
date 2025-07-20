@@ -1,3 +1,4 @@
+
 from flask import Blueprint, request, jsonify, session
 from app.models.user import User, Role
 from app.models.course import Course
@@ -193,3 +194,89 @@ def delete_course(course_id):
     db.session.delete(course)
     db.session.commit()
     return jsonify({'message': 'Course deleted', 'id': course_id})
+
+from werkzeug.security import generate_password_hash
+
+@admin_bp.route('/admin/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    user_id_session = session.get('user_id')
+    current_user = User.query.get(user_id_session)
+    if not current_user or current_user.role.name not in ['faculty_admin', 'superadmin']:
+        return jsonify({'error': 'Unauthorized'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'Utilisateur introuvable'}), 404
+    # Restriction faculty_admin
+    if current_user.role.name == 'faculty_admin':
+        if user.faculty_id != current_user.faculty_id or user.role.name in ['faculty_admin', 'superadmin']:
+            return jsonify({'error': 'Interdit'}), 403
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': 'Utilisateur supprimé'}), 200
+
+# --- MODIFIER UN UTILISATEUR ---
+@admin_bp.route('/admin/users/<user_id>', methods=['PUT', 'PATCH'])
+def edit_user(user_id):
+    user_id_session = session.get('user_id')
+    current_user = User.query.get(user_id_session)
+    if not current_user or current_user.role.name not in ['faculty_admin', 'superadmin']:
+        return jsonify({'error': 'Unauthorized'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'Utilisateur introuvable'}), 404
+    # Restriction faculty_admin
+    if current_user.role.name == 'faculty_admin':
+        if user.faculty_id != current_user.faculty_id or user.role.name in ['faculty_admin', 'superadmin']:
+            return jsonify({'error': 'Interdit'}), 403
+    data = request.json or {}
+    # Récupérer le rôle cible
+    role_name = data.get('role')
+    if role_name:
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            return jsonify({'error': 'Rôle invalide'}), 400
+        user.role_id = role.id
+    user.first_name = data.get('first_name', user.first_name)
+    user.last_name = data.get('last_name', user.last_name)
+    user.email = data.get('email', user.email)
+    # Validation selon le rôle
+    if role_name == 'student' or (user.role and user.role.name == 'student'):
+        faculty_id = data.get('faculty_id')
+        promotion_id = data.get('promotion_id')
+        department_id = data.get('department_id')
+        if not (faculty_id and promotion_id and department_id):
+            return jsonify({'error': 'Faculté, promotion et département obligatoires pour un étudiant'}), 400
+        user.faculty_id = faculty_id
+        user.promotion_id = promotion_id
+        user.department_id = department_id
+    elif role_name in ['prof', 'faculty_admin'] or (user.role and user.role.name in ['prof', 'faculty_admin']):
+        faculty_id = data.get('faculty_id')
+        if not faculty_id:
+            return jsonify({'error': 'Faculté obligatoire pour ce rôle'}), 400
+        user.faculty_id = faculty_id
+        user.promotion_id = None
+        user.department_id = None
+    elif role_name == 'superadmin' or (user.role and user.role.name == 'superadmin'):
+        user.faculty_id = None
+        user.promotion_id = None
+        user.department_id = None
+    db.session.commit()
+    return jsonify({'message': 'Utilisateur modifié'}), 200
+
+# --- RÉINITIALISER LE MOT DE PASSE D'UN UTILISATEUR ---
+@admin_bp.route('/admin/users/<user_id>/reset_password', methods=['POST'])
+def reset_user_password(user_id):
+    user_id_session = session.get('user_id')
+    current_user = User.query.get(user_id_session)
+    if not current_user or current_user.role.name not in ['faculty_admin', 'superadmin']:
+        return jsonify({'error': 'Unauthorized'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'Utilisateur introuvable'}), 404
+    # Restriction faculty_admin
+    if current_user.role.name == 'faculty_admin':
+        if user.faculty_id != current_user.faculty_id or user.role.name in ['faculty_admin', 'superadmin']:
+            return jsonify({'error': 'Interdit'}), 403
+    user.password_hash = generate_password_hash('12345789')
+    db.session.commit()
+    return jsonify({'message': 'Mot de passe réinitialisé à 12345789'}), 200

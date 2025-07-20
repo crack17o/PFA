@@ -2,27 +2,195 @@
 {% block content %}
 <div class="max-w-3xl mx-auto p-6">
     <h2 class="text-2xl font-bold text-blue-600 mb-4">Mes cours</h2>
-    <div id="coursesList" class="space-y-4"></div>
+    <div class="mb-4 flex flex-col md:flex-row md:items-center gap-4">
+        <label for="selectCourse" class="font-semibold">Sélectionner un cours :</label>
+        <select id="selectCourse" class="border rounded px-3 py-2"></select>
+        <button id="btnCourseInfo" class="bg-blue-500 text-white px-3 py-2 rounded">Voir les infos du cours</button>
+    </div>
+    <div id="courseInfo" class="mb-4"></div>
+    <div class="mb-4">
+        <button id="btnAddSession" class="bg-green-600 text-white px-3 py-2 rounded">Ajouter une session</button>
+    </div>
+    <table class="min-w-full bg-white rounded-lg shadow mb-8">
+        <thead>
+            <tr>
+                <th class="py-2 px-4">Date</th>
+                <th class="py-2 px-4">Statut</th>
+                <th class="py-2 px-4">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="sessionsList"></tbody>
+    </table>
+</div>
+<div id="sessionModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+    <h2 id="sessionModalTitle" class="text-xl font-bold mb-4">Ajouter une session</h2>
+    <form id="sessionForm">
+      <input type="hidden" id="sessionId">
+      <label class="block mb-2">Date et heure :</label>
+      <input type="datetime-local" id="sessionDate" class="w-full border rounded px-3 py-2 mb-4" required>
+      <label class="block mb-2">Statut :</label>
+      <select id="sessionStatus" class="w-full border rounded px-3 py-2 mb-4" required>
+        <option value="levée">Levée</option>
+        <option value="confirmée">Confirmée</option>
+        <option value="en attente">En attente</option>
+      </select>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeSessionModal()">Annuler</button>
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+      </div>
+    </form>
+  </div>
 </div>
 <script>
+let allCourses = [];
+let allSessions = [];
+let selectedCourseId = null;
+
 async function loadCourses() {
     const res = await fetch('/api/prof/courses');
     const data = await res.json();
-    const container = document.getElementById('coursesList');
-    if (!data.length) {
-        container.innerHTML = '<div class="text-gray-500">Aucun cours attribué.</div>';
+    allCourses = Array.isArray(data) ? data : [];
+    const select = document.getElementById('selectCourse');
+    select.innerHTML = '';
+    if (!allCourses.length) {
+        select.innerHTML = '<option value="">Aucun cours</option>';
+        document.getElementById('sessionsList').innerHTML = '';
+        document.getElementById('btnAddSession').disabled = true;
+        document.getElementById('btnCourseInfo').disabled = true;
         return;
     }
-    data.forEach(c => {
-        container.innerHTML += `<div class="bg-white rounded shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
-            <div class="flex-1">
-                <div class="font-semibold text-blue-600">${c.name}</div>
-                <div class="text-gray-700">Crédits : ${c.credits}</div>
-            </div>
-            <a href="/prof/courses/${c.id}/documents/view" class="bg-orange-400 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Documents</a>
-        </div>`;
+    allCourses.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        select.appendChild(opt);
+    });
+    selectedCourseId = allCourses[0].id;
+    select.value = selectedCourseId;
+    document.getElementById('btnAddSession').disabled = false;
+    document.getElementById('btnCourseInfo').disabled = false;
+    loadSessions();
+    showCourseInfo();
+}
+
+function showCourseInfo() {
+    const c = allCourses.find(c => c.id === selectedCourseId);
+    if (!c) {
+        document.getElementById('courseInfo').innerHTML = '';
+        return;
+    }
+    document.getElementById('courseInfo').innerHTML = `
+        <div class="bg-gray-100 rounded p-3 mb-2">
+            <div><span class="font-semibold">Nom :</span> ${c.name}</div>
+            <div><span class="font-semibold">Crédits :</span> ${c.credits}</div>
+            <div><span class="font-semibold">Département :</span> ${c.department_name || ''}</div>
+            <div><span class="font-semibold">Promotion :</span> ${c.promotion_name || ''}</div>
+            <div><span class="font-semibold">Semestre :</span> ${c.semester_name || ''}</div>
+        </div>
+    `;
+}
+
+async function loadSessions() {
+    if (!selectedCourseId) {
+        document.getElementById('sessionsList').innerHTML = '';
+        return;
+    }
+    const res = await fetch('/api/prof/sessions');
+    const data = await res.json();
+    // Filtrer les sessions du cours sélectionné
+    allSessions = (Array.isArray(data) ? data : []).filter(s => s.course_id === selectedCourseId);
+    renderSessions();
+}
+
+function renderSessions() {
+    const tbody = document.getElementById('sessionsList');
+    tbody.innerHTML = '';
+    if (!allSessions.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-gray-500 text-center">Aucune session</td></tr>';
+        return;
+    }
+    allSessions.forEach(s => {
+        tbody.innerHTML += `<tr>
+            <td class='py-2 px-4'>${s.date ? new Date(s.date).toLocaleString() : ''}</td>
+            <td class='py-2 px-4'>${s.status}</td>
+            <td class='py-2 px-4'>
+                <button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openSessionModal("edit", ${JSON.stringify(s)})'>Éditer</button>
+                <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteSession("${s.id}")'>Supprimer</button>
+            </td>
+        </tr>`;
     });
 }
+
+function openSessionModal(mode, sessionObj) {
+    document.getElementById('sessionModal').classList.remove('hidden');
+    document.getElementById('sessionForm').reset();
+    document.getElementById('sessionId').value = '';
+    if (mode === 'edit' && sessionObj) {
+        document.getElementById('sessionModalTitle').textContent = 'Éditer la session';
+        document.getElementById('sessionId').value = sessionObj.id;
+        document.getElementById('sessionDate').value = sessionObj.date ? sessionObj.date.slice(0,16) : '';
+        document.getElementById('sessionStatus').value = sessionObj.status;
+    } else {
+        document.getElementById('sessionModalTitle').textContent = 'Ajouter une session';
+    }
+}
+
+function closeSessionModal() {
+    document.getElementById('sessionModal').classList.add('hidden');
+}
+
+document.getElementById('selectCourse').addEventListener('change', function() {
+    selectedCourseId = this.value;
+    loadSessions();
+    showCourseInfo();
+});
+document.getElementById('btnCourseInfo').addEventListener('click', showCourseInfo);
+document.getElementById('btnAddSession').addEventListener('click', function() {
+    openSessionModal('add');
+});
+
+document.getElementById('sessionForm').onsubmit = function(e) {
+    e.preventDefault();
+    const id = document.getElementById('sessionId').value;
+    const date = document.getElementById('sessionDate').value;
+    const status = document.getElementById('sessionStatus').value;
+    let url = '/api/prof/sessions';
+    let method = 'POST';
+    let payload = { date, status, course_id: selectedCourseId };
+    if (id) {
+        url += '/' + id;
+        method = 'PUT';
+        delete payload.course_id;
+    }
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(res => res.json())
+        .then(data => {
+            closeSessionModal();
+            loadSessions();
+            alert(data.message || 'Opération réussie !');
+        })
+        .catch(() => alert('Erreur lors de l\'opération.'));
+};
+
+function deleteSession(sessionId) {
+    if (!confirm('Supprimer cette session ?')) return;
+    fetch(`/api/prof/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+    })
+        .then(res => res.json())
+        .then(data => {
+            loadSessions();
+            alert(data.message || 'Session supprimée !');
+        })
+        .catch(() => alert('Erreur lors de la suppression.'));
+}
+
 window.addEventListener('DOMContentLoaded', loadCourses);
 </script>
 {% endblock %}

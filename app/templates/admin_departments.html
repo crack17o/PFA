@@ -24,7 +24,7 @@
       <label class="block mb-2">Nom :</label>
       <input type="text" id="departmentName" class="w-full border rounded px-3 py-2 mb-4" required>
       <label class="block mb-2">Faculté :</label>
-      <select id="departmentFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
+      <select id="departmentFaculty" class="w-full border rounded px-3 py-2 mb-4" required disabled></select>
       <div class="flex justify-end gap-2">
         <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeDepartmentModal()">Annuler</button>
         <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
@@ -56,26 +56,33 @@ function openDepartmentModal(mode, departmentObj) {
   document.getElementById('departmentModal').classList.remove('hidden');
   document.getElementById('departmentForm').reset();
   document.getElementById('departmentId').value = '';
-  if (mode === 'add') {
-    document.getElementById('departmentModalTitle').textContent = 'Ajouter un département';
-  } else {
-    document.getElementById('departmentModalTitle').textContent = 'Éditer le département';
-    document.getElementById('departmentId').value = departmentObj.id;
-  }
-  // Charger les facultés dynamiquement
-  fetch('/api/faculties').then(res => res.json()).then(data => {
-    const select = document.getElementById('departmentFaculty');
-    select.innerHTML = '';
-    (Array.isArray(data) ? data : []).forEach(f => {
-      const opt = document.createElement('option');
-      opt.value = f.id;
-      opt.textContent = f.name;
-      select.appendChild(opt);
+  // Récupérer la faculté de l'utilisateur courant
+  fetch('/api/user/me').then(res => res.json()).then(currentUser => {
+    fetch('/api/faculties').then(res => res.json()).then(data => {
+      const select = document.getElementById('departmentFaculty');
+      select.innerHTML = '';
+      (Array.isArray(data) ? data : []).forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+      // Fixer la valeur à la faculté de l'utilisateur courant
+      if (currentUser && currentUser.faculty_id) {
+        select.value = currentUser.faculty_id;
+      }
+      // Si édition, préremplir le nom et la faculté
+      if (mode === 'edit' && departmentObj) {
+        document.getElementById('departmentModalTitle').textContent = 'Éditer le département';
+        document.getElementById('departmentId').value = departmentObj.id;
+        document.getElementById('departmentName').value = departmentObj.name;
+        select.value = departmentObj.faculty_id;
+      } else {
+        document.getElementById('departmentModalTitle').textContent = 'Ajouter un département';
+      }
+      // Rendre le champ faculté non éditable
+      select.disabled = true;
     });
-    if (mode === 'edit' && departmentObj) {
-      document.getElementById('departmentName').value = departmentObj.name;
-      select.value = departmentObj.faculty_id;
-    }
   });
 }
 function closeDepartmentModal() {
@@ -86,12 +93,14 @@ document.getElementById('departmentForm').onsubmit = function(e) {
   const id = document.getElementById('departmentId').value;
   const name = document.getElementById('departmentName').value;
   const faculty_id = document.getElementById('departmentFaculty').value;
-  const payload = { name, faculty_id };
-  let url = '/api/admin/departments';
+  let url = '/api/departments';
   let method = 'POST';
+  let payload = { name, faculty_id };
   if (id) {
     url += '/' + id;
     method = 'PUT';
+    // En édition, on ne doit envoyer que le nom (la faculté ne change jamais)
+    payload = { name };
   }
   fetch(url, {
     method,
@@ -108,7 +117,7 @@ document.getElementById('departmentForm').onsubmit = function(e) {
 };
 function deleteDepartment(departmentId) {
   if (!confirm('Supprimer ce département ?')) return;
-  fetch(`/api/admin/departments/${departmentId}`, {
+  fetch(`/api/departments/${departmentId}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' }
   })

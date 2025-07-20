@@ -23,27 +23,24 @@ async function loadDashboard() {
     const data = await res.json();
     document.getElementById('nbCourses').textContent = data.stats.nb_courses;
     document.getElementById('nbDocuments').textContent = data.stats.nb_documents;
-    // Séances du jour
-    const todaySessions = data.reminders.filter(s => {
-        const d = new Date(s.date);
-        const now = new Date();
-        return d.toDateString() === now.toDateString();
-    });
+    // Séances du jour via nouvelle API
+    const resToday = await fetch('/api/prof/sessions/today');
+    const todaySessions = await resToday.json();
     const container = document.getElementById('todaySessions');
     container.innerHTML = '';
-    if (todaySessions.length === 0) {
+    if (!todaySessions.length) {
         container.innerHTML = '<div class="text-gray-500">Aucune séance prévue aujourd\'hui.</div>';
     } else {
         todaySessions.forEach(s => {
             container.innerHTML += `
             <div class="bg-white rounded shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div class="flex-1">
-                    <div class="font-semibold text-blue-600">${s.course}</div>
+                    <div class="font-semibold text-blue-600">${s.course_name}</div>
                     <div class="text-gray-700">${new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    <div class="text-sm text-gray-500">Statut : <span class="font-bold" id="status-${s.course}-${s.date}">${s.status}</span></div>
+                    <div class="text-sm text-gray-500">Statut : <span class="font-bold" id="status-${s.id}">${s.status}</span></div>
                 </div>
                 <div>
-                    <select class="px-2 py-1 border rounded" onchange="changeStatus('${s.course}', '${s.date}', this.value)">
+                    <select class="px-2 py-1 border rounded" onchange="changeStatus('${s.id}', this.value)">
                         <option value="en attente" ${s.status==='en attente'?'selected':''}>En attente</option>
                         <option value="effectuée" ${s.status==='effectuée'?'selected':''}>Effectuée</option>
                         <option value="annulée" ${s.status==='annulée'?'selected':''}>Annulée</option>
@@ -53,15 +50,15 @@ async function loadDashboard() {
         });
     }
 }
-async function changeStatus(course, date, status) {
+async function changeStatus(sessionId, status) {
     // Appel backend pour changer le statut de la séance
-    const res = await fetch('api/prof/change-session-status', {
+    const res = await fetch('/api/prof/change-session-status', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({course, date, status})
+        body: JSON.stringify({session_id: sessionId, status})
     });
     if (res.ok) {
-        document.getElementById(`status-${course}-${date}`).textContent = status;
+        document.getElementById(`status-${sessionId}`).textContent = status;
     }
 }
 window.addEventListener('DOMContentLoaded', loadDashboard);

@@ -2,7 +2,8 @@
 {% block content %}
 <div class="container mx-auto py-8">
   <h1 class="text-3xl font-bold mb-6">Gestion des facultés</h1>
-  <div class="flex justify-end mb-4">
+  <div class="flex justify-between mb-4 items-center">
+    <input id="searchFacultyName" type="text" class="border rounded px-3 py-2" placeholder="Rechercher un nom..." />
     <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openFacultyModal('add')">Ajouter une faculté</button>
   </div>
   <table class="min-w-full bg-white rounded-lg shadow mb-8">
@@ -31,19 +32,30 @@
   </div>
 </div>
 <script>
+let allFaculties = [];
 function loadFaculties() {
   fetch('/api/faculties')
     .then(res => res.json())
     .then(data => {
-      const tbody = document.getElementById('faculties-list');
-      tbody.innerHTML = '';
-      (Array.isArray(data) ? data : []).forEach(f => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4'>${f.name}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openFacultyModal("edit", ${JSON.stringify(f)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteFaculty("${f.id}")'>Supprimer</button></td>`;
-        tbody.appendChild(tr);
-      });
+      allFaculties = Array.isArray(data) ? data : [];
+      renderFaculties();
     });
 }
+function renderFaculties() {
+  const search = document.getElementById('searchFacultyName').value.trim().toLowerCase();
+  const tbody = document.getElementById('faculties-list');
+  tbody.innerHTML = '';
+  let filtered = allFaculties;
+  if (search) {
+    filtered = filtered.filter(f => (f.name || '').toLowerCase().includes(search));
+  }
+  filtered.forEach(f => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${f.name}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openFacultyModal("edit", ${JSON.stringify(f)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteFaculty("${f.id}")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('searchFacultyName').addEventListener('input', renderFaculties);
 loadFaculties();
 function openFacultyModal(mode, facultyObj) {
   document.getElementById('facultyModal').classList.remove('hidden');

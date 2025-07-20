@@ -34,7 +34,7 @@
                 <a href="/student/books" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Livres</a>
                 <a href="/student/profile" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Profil</a>
                 <a href="/student/chatbot" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Chatbot</a>
-                <a href="/student/notifications" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Notifications</a>
+                <!-- <a href="/student/notifications" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Notifications</a> -->
                 <a href="/logout" class="text-orange-500 hover:text-blue-600 font-semibold text-2xl md:text-base" style="color: #f59e42 !important;">Déconnexion</a>
             {% elif session.get('user_id') and session.get('role') == 'prof' %}
                 <a href="/prof/dashboard" class="text-blue-600 hover:text-orange-500 font-semibold text-2xl md:text-base">Dashboard</a>

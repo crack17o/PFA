@@ -3,10 +3,10 @@
 <div class="container mx-auto py-8">
   <h1 class="text-3xl font-bold mb-6">Gestion des départements</h1>
   <div class="flex justify-between mb-4 items-center">
-    <div>
+    <div class="flex gap-4 items-center">
       <label for="filterFaculty" class="mr-2 font-semibold">Filtrer par faculté :</label>
-      <select id="filterFaculty" class="border rounded px-3 py-2">
-      </select>
+      <select id="filterFaculty" class="border rounded px-3 py-2"></select>
+      <input id="searchDepartmentName" type="text" class="border rounded px-3 py-2" placeholder="Rechercher un nom..." />
     </div>
     <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openDepartmentModal('add')">Ajouter un département</button>
   </div>
@@ -68,18 +68,23 @@ function loadDepartments() {
 
 function renderDepartments() {
   const facultyId = document.getElementById('filterFaculty').value;
+  const search = document.getElementById('searchDepartmentName').value.trim().toLowerCase();
   const tbody = document.getElementById('departments-list');
   tbody.innerHTML = '';
   let filtered = allDepartments;
   if (facultyId) {
     filtered = filtered.filter(d => d.faculty_id == facultyId);
   }
+  if (search) {
+    filtered = filtered.filter(d => (d.name || '').toLowerCase().includes(search));
+  }
   filtered.forEach(d => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class='py-2 px-4'>${d.name}</td><td class='py-2 px-4'>${d.faculty_name || ''}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openDepartmentModal("edit", ${JSON.stringify(d)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteDepartment("${d.id}")'>Supprimer</button></td>`;
+    tr.innerHTML = `<td class='py-2 px-4'>${d.name}</td><td class='py-2 px-4'>${d.faculty_name || ''}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openDepartmentModal(\"edit\", ${JSON.stringify(d)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteDepartment(\"${d.id}\")'>Supprimer</button></td>`;
     tbody.appendChild(tr);
   });
 }
+document.getElementById('searchDepartmentName').addEventListener('input', renderDepartments);
 
 document.getElementById('filterFaculty').addEventListener('change', renderDepartments);
 

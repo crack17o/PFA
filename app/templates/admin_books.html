@@ -2,7 +2,8 @@
 {% block content %}
 <div class="container mx-auto py-8">
 <h1 class="text-3xl font-bold mb-6">Gestion des livres</h1>
-  <div class="flex justify-end mb-4">
+  <div class="flex justify-between mb-4 items-center">
+    <input id="searchBook" type="text" class="border rounded px-3 py-2" placeholder="Rechercher par titre ou auteur..." />
     <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openBookModal()">Ajouter un livre</button>
   </div>
   <table class="min-w-full bg-white rounded-lg shadow mb-8">
@@ -38,23 +39,35 @@
   </div>
 </div>
 <script>
+let allBooks = [];
 function loadBooks() {
   fetch('/api/books')
     .then(res => res.json())
     .then(data => {
-      const tbody = document.getElementById('books-list');
-      tbody.innerHTML = '';
       if (data.error) {
+        const tbody = document.getElementById('books-list');
         tbody.innerHTML = `<tr><td colspan="4" class="text-red-500 py-4 text-center">${data.error}</td></tr>`;
         return;
       }
-      (Array.isArray(data) ? data : []).forEach(b => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4'>${b.title}</td><td class='py-2 px-4'>${b.author}</td><td class='py-2 px-4'><a href='${b.file_url}' target='_blank' class='text-blue-600 underline'>Télécharger</a></td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openEditBookModal(${JSON.stringify(b)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteBook("${b.id}")'>Supprimer</button></td>`;
-        tbody.appendChild(tr);
-      });
+      allBooks = Array.isArray(data) ? data : [];
+      renderBooks();
     });
 }
+function renderBooks() {
+  const search = document.getElementById('searchBook').value.trim().toLowerCase();
+  const tbody = document.getElementById('books-list');
+  tbody.innerHTML = '';
+  let filtered = allBooks;
+  if (search) {
+    filtered = filtered.filter(b => (b.title || '').toLowerCase().includes(search) || (b.author || '').toLowerCase().includes(search));
+  }
+  filtered.forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${b.title}</td><td class='py-2 px-4'>${b.author}</td><td class='py-2 px-4'><a href='${b.file_url}' target='_blank' class='text-blue-600 underline'>Télécharger</a></td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openEditBookModal(${JSON.stringify(b)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteBook("${b.id}")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('searchBook').addEventListener('input', renderBooks);
 function openBookModal() {
   document.getElementById('bookModalTitle').textContent = 'Ajouter un livre';
   document.getElementById('bookFormSubmit').textContent = 'Ajouter';

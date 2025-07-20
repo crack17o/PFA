@@ -2,7 +2,14 @@
 {% block content %}
 <div class="container mx-auto py-8">
   <h1 class="text-3xl font-bold mb-6">Gestion des cours</h1>
-  <div class="flex justify-end mb-4">
+  <div class="flex justify-between mb-4 items-center">
+    <div class="flex gap-4 items-center">
+      <input id="searchCourse" type="text" class="border rounded px-3 py-2" placeholder="Rechercher un nom de cours..." />
+      <label for="filterProf" class="font-semibold">Professeur :</label>
+      <select id="filterProf" class="border rounded px-3 py-2">
+        <option value="">Tous</option>
+      </select>
+    </div>
     <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openCourseModal('add')">Ajouter un cours</button>
   </div>
   <table class="min-w-full bg-white rounded-lg shadow mb-8">
@@ -75,30 +82,65 @@
   </div>
 </div>
 <script>
+let allCourses = [];
+let allProfs = [];
 function loadCourses() {
   fetch('/api/courses')
     .then(res => res.json())
     .then(data => {
-      const tbody = document.getElementById('courses-list');
-      tbody.innerHTML = '';
       if (data.error) {
+        const tbody = document.getElementById('courses-list');
         tbody.innerHTML = `<tr><td colspan="4" class="text-red-500 py-4 text-center">${data.error}</td></tr>`;
         return;
       }
-      (Array.isArray(data) ? data : []).forEach(c => {
-        const profs = c.professors ? c.professors.map(p => (p.name ? p.name : p.email)).join(', ') : '';
-        const hasProf = Array.isArray(c.professors) && c.professors.length > 0;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4'>${c.name}</td><td class='py-2 px-4'>${c.credits}</td><td class='py-2 px-4'>${profs}</td><td class='py-2 px-4'>
-          ${!hasProf ? `<button class='bg-blue-600 text-white px-2 py-1 rounded' onclick='assignProf("${c.id}", ${JSON.stringify(c)})'>Affecter</button>` : ''}
-          ${hasProf ? `<button class='bg-red-500 text-white px-2 py-1 rounded' onclick='unassignProf("${c.id}", ${JSON.stringify(c)})'>Retirer</button>` : ''}
-          <button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openCourseModal("edit", ${JSON.stringify(c)})'>Éditer</button>
-          <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteCourse("${c.id}")'>Supprimer</button>
-        </td>`;
-        tbody.appendChild(tr);
+      allCourses = Array.isArray(data) ? data : [];
+      renderCourses();
+      // Charger la liste des profs pour le filtre
+      let profSet = new Map();
+      allCourses.forEach(c => {
+        (c.professors || []).forEach(p => {
+          if (p && p.id) profSet.set(p.id, p.name || p.email);
+        });
       });
+      const select = document.getElementById('filterProf');
+      const current = select.value;
+      select.innerHTML = '<option value="">Tous</option>';
+      profSet.forEach((name, id) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      select.value = current;
     });
 }
+function renderCourses() {
+  const search = document.getElementById('searchCourse').value.trim().toLowerCase();
+  const profId = document.getElementById('filterProf').value;
+  const tbody = document.getElementById('courses-list');
+  tbody.innerHTML = '';
+  let filtered = allCourses;
+  if (search) {
+    filtered = filtered.filter(c => (c.name || '').toLowerCase().includes(search));
+  }
+  if (profId) {
+    filtered = filtered.filter(c => Array.isArray(c.professors) && c.professors.some(p => p.id == profId));
+  }
+  filtered.forEach(c => {
+    const profs = c.professors ? c.professors.map(p => (p.name ? p.name : p.email)).join(', ') : '';
+    const hasProf = Array.isArray(c.professors) && c.professors.length > 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${c.name}</td><td class='py-2 px-4'>${c.credits}</td><td class='py-2 px-4'>${profs}</td><td class='py-2 px-4'>
+      ${!hasProf ? `<button class='bg-blue-600 text-white px-2 py-1 rounded' onclick='assignProf(\"${c.id}\", ${JSON.stringify(c)})'>Affecter</button>` : ''}
+      ${hasProf ? `<button class='bg-red-500 text-white px-2 py-1 rounded' onclick='unassignProf(\"${c.id}\", ${JSON.stringify(c)})'>Retirer</button>` : ''}
+      <button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openCourseModal(\"edit\", ${JSON.stringify(c)})'>Éditer</button>
+      <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteCourse(\"${c.id}\")'>Supprimer</button>
+    </td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('searchCourse').addEventListener('input', renderCourses);
+document.getElementById('filterProf').addEventListener('change', renderCourses);
 function openCourseModal(mode, courseObj) {
   document.getElementById('courseModal').classList.remove('hidden');
   document.getElementById('courseForm').reset();

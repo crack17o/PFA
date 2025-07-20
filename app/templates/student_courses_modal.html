@@ -12,12 +12,12 @@
 <script>
 function showCourseModal() {
   document.getElementById('course-modal').classList.remove('hidden');
-  fetch('/api/student/courses', {method: 'GET'})
+  fetch('/api/student/promotion/courses')
     .then(res => res.json())
     .then(data => {
       const select = document.getElementById('available-courses');
       select.innerHTML = '';
-      (data || []).forEach(c => {
+      (data.courses || []).forEach(c => {
         const option = document.createElement('option');
         option.value = c.id;
         option.textContent = `${c.name} (${c.credits} crédits)`;

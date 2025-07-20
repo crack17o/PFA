@@ -21,7 +21,9 @@ async function loadBooks() {
         container.innerHTML = '<div class="text-gray-500">Aucun livre ajouté pour votre faculté.</div>';
         return;
     }
+    window._bookData = {};
     books.forEach(book => {
+        window._bookData[book.id] = book;
         container.innerHTML += `
         <div class="bg-white rounded shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
             <div class="flex-1">
@@ -29,18 +31,78 @@ async function loadBooks() {
                 <div class="text-gray-700 text-sm">${book.author}</div>
                 <a href="${book.file_url}" target="_blank" class="text-orange-500 underline">Télécharger</a>
             </div>
+            <button onclick="openEditBookModal('${book.id}')" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-700 transition">Éditer</button>
             <button onclick="deleteBook('${book.id}')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 transition">Supprimer</button>
         </div>`;
     });
 }
 
+document.body.insertAdjacentHTML('beforeend', `
+<div id="editBookModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4">Éditer le livre</h2>
+    <form id="editBookForm" enctype="multipart/form-data">
+      <input type="hidden" id="editBookId">
+      <label class="block mb-2">Titre :</label>
+      <input type="text" id="editBookTitle" class="w-full border rounded px-3 py-2 mb-4" required>
+      <label class="block mb-2">Auteur :</label>
+      <input type="text" id="editBookAuthor" class="w-full border rounded px-3 py-2 mb-4" required>
+      <label class="block mb-2">Nouveau fichier (optionnel) :</label>
+      <input type="file" id="editBookFile" class="w-full border rounded px-3 py-2 mb-4" accept="application/pdf">
+      <div class="flex justify-end gap-2">
+        <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeEditBookModal()">Annuler</button>
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+      </div>
+    </form>
+  </div>
+</div>
+`);
+
+// --- MODALE ---
+function openEditBookModal(bookId) {
+    const book = window._bookData[bookId];
+    document.getElementById('editBookModal').classList.remove('hidden');
+    document.getElementById('editBookId').value = book.id;
+    document.getElementById('editBookTitle').value = book.title;
+    document.getElementById('editBookAuthor').value = book.author;
+    document.getElementById('editBookFile').value = '';
+    // Suppression du select cours pour édition
+    if (document.getElementById('editBookCourse')) {
+        document.getElementById('editBookCourse').value = '';
+    }
+}
+function closeEditBookModal() {
+    document.getElementById('editBookModal').classList.add('hidden');
+}
+document.getElementById('editBookForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const bookId = document.getElementById('editBookId').value;
+    const title = document.getElementById('editBookTitle').value;
+    const author = document.getElementById('editBookAuthor').value;
+    const file = document.getElementById('editBookFile').files[0];
+    // Suppression du select cours pour édition
+    const formData = new FormData();
+    formData.append('title', title);
+    if (file) formData.append('file', file);
+    const res = await fetch(`/api/prof/documents/${bookId}`, {
+        method: 'PUT',
+        body: formData
+    });
+    if (res.ok) {
+        closeEditBookModal();
+        loadBooks();
+        alert('Livre modifié !');
+    } else {
+        alert('Erreur lors de la modification.');
+    }
+};
+
 document.getElementById('addBookForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData();
     formData.append('title', document.getElementById('bookTitle').value);
-    formData.append('author', document.getElementById('bookAuthor').value);
     formData.append('file', document.getElementById('bookFile').files[0]);
-    const res = await fetch('/api/books', {
+    const res = await fetch(`/api/prof/documents`, {
         method: 'POST',
         body: formData
     });
@@ -49,17 +111,22 @@ document.getElementById('addBookForm').addEventListener('submit', async function
         document.getElementById('bookAuthor').value = '';
         document.getElementById('bookFile').value = '';
         loadBooks();
+    } else {
+        alert('Erreur lors de l\'ajout du livre.');
     }
 });
 
 async function deleteBook(bookId) {
     if (!confirm('Supprimer ce livre ?')) return;
-    const res = await fetch(`/api/books/${bookId}`, {
+    const book = window._bookData[bookId];
+    const res = await fetch(`/api/prof/documents/${bookId}`, {
         method: 'DELETE'
     });
     if (res.ok) loadBooks();
 }
 
-window.addEventListener('DOMContentLoaded', loadBooks);
+window.addEventListener('DOMContentLoaded', () => {
+    loadBooks();
+});
 </script>
 {% endblock %}

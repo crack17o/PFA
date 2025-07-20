@@ -108,7 +108,7 @@ def faculty_profile():
 
 @views_bp.route('/faculty/department')
 def faculty_department():
-    return render_template('admin_department.html')
+    return render_template('admin_departments.html')
 
 @views_bp.route('/faculty/promotion')
 def faculty_promotion():

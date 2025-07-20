@@ -5,13 +5,16 @@
 <div class="flex justify-end mb-4">
   <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openUserModal('add')">Ajouter un utilisateur</button>
 </div>
-<div class="flex gap-4 mb-4">
+<div class="flex gap-4 mb-4 items-center">
   <label for="filterRole" class="font-semibold">Filtrer par rôle :</label>
   <select id="filterRole" class="border rounded px-3 py-2">
     <option value="">Tous</option>
-    <option value="student">Étudiant</option>
-    <option value="prof">Professeur</option>
   </select>
+  <label for="filterFaculty" class="font-semibold">Faculté :</label>
+  <select id="filterFaculty" class="border rounded px-3 py-2">
+    <option value="">Toutes</option>
+  </select>
+  <input id="searchName" type="text" class="border rounded px-3 py-2" placeholder="Rechercher un nom..." />
 </div>
 <table class="min-w-full bg-white rounded-lg shadow mb-8">
   <thead>
@@ -44,8 +47,6 @@
       </div>
       <label class="block mb-2">Email :</label>
       <input type="email" id="userEmail" class="w-full border rounded px-3 py-2 mb-4" required>
-      <label class="block mb-2">Mot de passe :</label>
-      <input type="password" id="userPassword" class="w-full border rounded px-3 py-2 mb-4" required>
       <label class="block mb-2">Rôle :</label>
       <select id="userRole" class="w-full border rounded px-3 py-2 mb-4" required></select>
       <div id="userFacultyDiv" style="display:none;">
@@ -72,6 +73,7 @@
 let allRoles = [];
 let allUsers = [];
 
+
 function loadRolesForFilter() {
   fetch('/api/roles')
     .then(res => res.json())
@@ -88,6 +90,21 @@ function loadRolesForFilter() {
     });
 }
 
+function loadFacultiesForFilter() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById('filterFaculty');
+      select.innerHTML = '<option value="">Toutes</option>';
+      (Array.isArray(data) ? data : []).forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    });
+}
+
 function loadUsers() {
   fetch('/api/admin/users')
     .then(res => res.json())
@@ -99,25 +116,35 @@ function loadUsers() {
 
 function renderUsers() {
   const role = document.getElementById('filterRole').value;
+  const faculty = document.getElementById('filterFaculty').value;
+  const search = document.getElementById('searchName').value.trim().toLowerCase();
   const tbody = document.getElementById('users-list');
   tbody.innerHTML = '';
   let filtered = allUsers;
   if (role) {
     filtered = filtered.filter(u => u.role === role);
   }
+  if (faculty) {
+    filtered = filtered.filter(u => u.faculty && (u.faculty.id == faculty || u.faculty_id == faculty));
+  }
+  if (search) {
+    filtered = filtered.filter(u => (u.name || '').toLowerCase().includes(search));
+  }
   filtered.forEach(u => {
-    const promotionName = (u.promotion && u.promotion.name) ? u.promotion.name : (u.promotion && u.promotion.id ? u.promotion.id : '');
-    const departmentName = (u.department && u.department.name) ? u.department.name : (u.department && u.department.id ? u.department.id : '');
-    const facultyName = (u.faculty && u.faculty.name) ? u.faculty.name : (u.faculty && u.faculty.id ? u.faculty.id : '');
+    const promotionName = (u.promotion && u.promotion.name) ? u.promotion.name : '';
+    const departmentName = (u.department && u.department.name) ? u.department.name : '';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class='py-2 px-4'>${u.name || ''}</td><td class='py-2 px-4'>${u.email}</td><td class='py-2 px-4'>${u.role}</td><td class='py-2 px-4'>${promotionName}</td><td class='py-2 px-4'>${departmentName}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openUserModal("edit", ${JSON.stringify(u)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteUser("${u.id}")'>Supprimer</button></td>`;
+    tr.innerHTML = `<td class='py-2 px-4'>${u.name || ''}</td><td class='py-2 px-4'>${u.email}</td><td class='py-2 px-4'>${u.role}</td><td class='py-2 px-4'>${promotionName}</td><td class='py-2 px-4'>${departmentName}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openUserModal("edit", ${JSON.stringify(u)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteUser("${u.id}")'>Supprimer</button> <button class='bg-blue-600 text-white px-2 py-1 rounded' onclick='resetUserPassword("${u.id}")'>Réinitialiser MDP</button></td>`;
     tbody.appendChild(tr);
   });
 }
 
 document.getElementById('filterRole').addEventListener('change', renderUsers);
+document.getElementById('filterFaculty').addEventListener('change', renderUsers);
+document.getElementById('searchName').addEventListener('input', renderUsers);
 
 loadRolesForFilter();
+loadFacultiesForFilter();
 loadUsers();
 
 function openUserModal(mode, userObj) {
@@ -209,15 +236,14 @@ document.getElementById('userForm').onsubmit = function(e) {
   const first_name = document.getElementById('userFirstName').value.trim();
   const last_name = document.getElementById('userLastName').value.trim();
   const email = document.getElementById('userEmail').value.trim();
-  const password = document.getElementById('userPassword').value;
   const role_id = document.getElementById('userRole').value;
   const faculty_id = document.getElementById('userFaculty').value;
   // Validation basique
-  if (!first_name || !last_name || !email || !password || !role_id) {
+  if (!first_name || !last_name || !email || !role_id) {
     alert('Tous les champs obligatoires doivent être remplis.');
     return;
   }
-  let payload = { first_name, last_name, email, password, faculty_id };
+  let payload = { first_name, last_name, email, faculty_id };
   // Récupérer le nom du rôle
   const selectedRole = Array.isArray(allRoles) ? allRoles.find(r => r.id == role_id) : null;
   if (selectedRole) {
@@ -233,12 +259,16 @@ document.getElementById('userForm').onsubmit = function(e) {
     payload.promotion_id = promotion_id;
     payload.department_id = department_id;
   }
-  let url = '/api/auth/register';
-  let method = 'POST';
-  // Ajout uniquement, pas d'édition via register
-  if (id) {
-    alert('L\'édition d\'utilisateur ne passe pas par cette méthode.');
-    return;
+  let url, method;
+  if (!id) {
+    // Ajout
+    url = '/api/auth/register';
+    method = 'POST';
+    payload.password = '123456789';
+  } else {
+    // Edition
+    url = `/api/admin/users/${id}`;
+    method = 'PUT';
   }
   fetch(url, {
     method,

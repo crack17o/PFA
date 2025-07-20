@@ -2,7 +2,18 @@
 {% block content %}
 <div class="container mx-auto py-8">
   <h1 class="text-3xl font-bold mb-6">Gestion des cours</h1>
-  <div class="flex justify-end mb-4">
+  <div class="flex justify-between mb-4 items-center">
+    <div class="flex gap-4 items-center">
+      <label for="filterFaculty" class="font-semibold">Faculté :</label>
+      <select id="filterFaculty" class="border rounded px-3 py-2">
+        <option value="">Toutes</option>
+      </select>
+      <label for="filterProf" class="font-semibold">Professeur :</label>
+      <select id="filterProf" class="border rounded px-3 py-2">
+        <option value="">Tous</option>
+      </select>
+      <input id="searchCourseName" type="text" class="border rounded px-3 py-2" placeholder="Rechercher un nom..." />
+    </div>
     <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openCourseModal('add')">Ajouter un cours</button>
   </div>
   <table class="min-w-full bg-white rounded-lg shadow mb-8">
@@ -60,26 +71,80 @@
   </div>
 </div>
 <script>
+let allCourses = [];
+let allFaculties = [];
+let allProfs = [];
 function loadCourses() {
   fetch('/api/admin/courses')
     .then(res => res.json())
     .then(data => {
-      const tbody = document.getElementById('courses-list');
-      tbody.innerHTML = '';
-      (Array.isArray(data) ? data : []).forEach(c => {
-        // Affichage des professeurs assignés
-        let profs = '';
-        if (Array.isArray(c.professors) && c.professors.length > 0) {
-          profs = c.professors.map(p => `<span class='inline-block bg-gray-200 rounded px-2 py-1 mr-1 mb-1'>${p.name} <button class='text-xs text-red-600' onclick='unassignProf("${c.id}", "${p.id}")'>Retirer</button></span>`).join('');
-        } else {
-          profs = `<button class='bg-blue-500 text-white px-2 py-1 rounded text-xs' onclick='openAssignProfModal("${c.id}")'>Assigner prof</button>`;
-        }
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4'>${c.name}</td><td class='py-2 px-4'>${c.department_name || ''}</td><td class='py-2 px-4'>${c.faculty_name || ''}</td><td class='py-2 px-4'>${c.credits || ''}</td><td class='py-2 px-4'>${profs}</td><td class='py-2 px-4'><button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteCourse("${c.id}")'>Supprimer</button></td>`;
-        tbody.appendChild(tr);
+      allCourses = Array.isArray(data) ? data : [];
+      renderCourses();
+    });
+}
+function renderCourses() {
+  const facultyId = document.getElementById('filterFaculty').value;
+  const profId = document.getElementById('filterProf').value;
+  const search = document.getElementById('searchCourseName').value.trim().toLowerCase();
+  const tbody = document.getElementById('courses-list');
+  tbody.innerHTML = '';
+  let filtered = allCourses;
+  if (facultyId) {
+    filtered = filtered.filter(c => c.faculty_id == facultyId);
+  }
+  if (profId) {
+    filtered = filtered.filter(c => Array.isArray(c.professors) && c.professors.some(p => p.id == profId));
+  }
+  if (search) {
+    filtered = filtered.filter(c => (c.name || '').toLowerCase().includes(search));
+  }
+  filtered.forEach(c => {
+    let profs = '';
+    if (Array.isArray(c.professors) && c.professors.length > 0) {
+      profs = c.professors.map(p => `<span class='inline-block bg-gray-200 rounded px-2 py-1 mr-1 mb-1'>${p.name} <button class='text-xs text-red-600' onclick='unassignProf(\"${c.id}\", \"${p.id}\")'>Retirer</button></span>`).join('');
+    } else {
+      profs = `<button class='bg-blue-500 text-white px-2 py-1 rounded text-xs' onclick='openAssignProfModal(\"${c.id}\")'>Assigner prof</button>`;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class='py-2 px-4'>${c.name}</td><td class='py-2 px-4'>${c.department_name || ''}</td><td class='py-2 px-4'>${c.faculty_name || ''}</td><td class='py-2 px-4'>${c.credits || ''}</td><td class='py-2 px-4'>${profs}</td><td class='py-2 px-4'><button class='bg-yellow-500 text-white px-2 py-1 rounded' onclick='openCourseModal(\"edit\", ${JSON.stringify(c)})'>Éditer</button> <button class='bg-gray-700 text-white px-2 py-1 rounded' onclick='deleteCourse(\"${c.id}\")'>Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function loadFacultiesForFilter() {
+  fetch('/api/faculties')
+    .then(res => res.json())
+    .then(data => {
+      allFaculties = Array.isArray(data) ? data : [];
+      const select = document.getElementById('filterFaculty');
+      select.innerHTML = '<option value="">Toutes</option>';
+      allFaculties.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
       });
     });
 }
+function loadProfsForFilter() {
+  fetch('/api/admin/users')
+    .then(res => res.json())
+    .then(data => {
+      allProfs = (Array.isArray(data) ? data : []).filter(u => u.role === 'prof');
+      const select = document.getElementById('filterProf');
+      select.innerHTML = '<option value="">Tous</option>';
+      allProfs.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name || p.email;
+        select.appendChild(opt);
+      });
+    });
+}
+document.getElementById('filterFaculty').addEventListener('change', renderCourses);
+document.getElementById('filterProf').addEventListener('change', renderCourses);
+document.getElementById('searchCourseName').addEventListener('input', renderCourses);
+loadFacultiesForFilter();
+loadProfsForFilter();
 loadCourses();
 
 function openAssignProfModal(courseId) {
@@ -190,34 +255,53 @@ async function loadSemesters() {
   });
 }
 
-function openCourseModal() {
+function openCourseModal(mode = 'add', courseObj = null) {
   document.getElementById('courseModal').classList.remove('hidden');
   document.getElementById('courseForm').reset();
   document.getElementById('courseId').value = '';
   loadFaculties().then(() => {
     const selectFaculty = document.getElementById('courseFaculty');
-    // Charger départements et promotions selon la faculté sélectionnée
     selectFaculty.addEventListener('change', async function() {
       await loadDepartments(this.value);
       await loadPromotions(this.value);
     });
-    // Charger initialement les départements et promotions si une faculté est sélectionnée
-    if (selectFaculty.value) {
-      loadDepartments(selectFaculty.value);
-      loadPromotions(selectFaculty.value);
+    if (mode === 'edit' && courseObj) {
+      document.getElementById('courseModalTitle').textContent = 'Éditer le cours';
+      document.getElementById('courseId').value = courseObj.id;
+      document.getElementById('courseName').value = courseObj.name || '';
+      document.getElementById('courseCredits').value = courseObj.credits || '';
+      selectFaculty.value = courseObj.faculty_id || '';
+      // Charger départements et promotions liés à la faculté du cours
+      loadDepartments(selectFaculty.value).then(() => {
+        document.getElementById('courseDepartment').value = courseObj.department_id || '';
+      });
+      loadPromotions(selectFaculty.value).then(() => {
+        document.getElementById('coursePromotion').value = courseObj.promotion_id || '';
+      });
+      loadSemesters().then(() => {
+        document.getElementById('courseSemester').value = courseObj.semester_id || '';
+      });
     } else {
+      document.getElementById('courseModalTitle').textContent = 'Ajouter un cours';
+      document.getElementById('courseId').value = '';
+      document.getElementById('courseName').value = '';
+      document.getElementById('courseCredits').value = '';
+      selectFaculty.value = '';
       document.getElementById('courseDepartment').innerHTML = '<option value="">Sélectionner</option>';
       document.getElementById('coursePromotion').innerHTML = '<option value="">Sélectionner</option>';
+      loadSemesters();
     }
   });
-  loadSemesters();
-  document.getElementById('courseModalTitle').textContent = 'Ajouter un cours';
+  if (!(mode === 'edit' && courseObj)) {
+    loadSemesters();
+  }
 }
 function closeCourseModal() {
   document.getElementById('courseModal').classList.add('hidden');
 }
 document.getElementById('courseForm').onsubmit = function(e) {
   e.preventDefault();
+  const id = document.getElementById('courseId').value;
   const name = document.getElementById('courseName').value;
   const credits = document.getElementById('courseCredits').value;
   const department_id = document.getElementById('courseDepartment').value;
@@ -225,13 +309,23 @@ document.getElementById('courseForm').onsubmit = function(e) {
   const semester_id = document.getElementById('courseSemester').value;
   const faculty_id = document.getElementById('courseFaculty').value;
   const payload = { name, credits, department_id, promotion_id, faculty_id, semester_id };
-  fetch('/api/admin/courses', {
-    method: 'POST',
+  let url = '/api/admin/courses';
+  let method = 'POST';
+  if (id) {
+    url += '/' + id;
+    method = 'PUT';
+  }
+  fetch(url, {
+    method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
     .then(res => res.json())
     .then(data => {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
       closeCourseModal();
       loadCourses();
       alert(data.message || 'Opération réussie !');
@@ -246,6 +340,10 @@ function deleteCourse(courseId) {
   })
     .then(res => res.json())
     .then(data => {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
       loadCourses();
       alert(data.message || 'Cours supprimé !');
     })

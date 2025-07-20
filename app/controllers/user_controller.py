@@ -66,3 +66,18 @@ def toggle_2fa():
     user.is_2fa_enabled = enable
     db.session.commit()
     return jsonify({'message': '2FA updated', 'is_2fa_enabled': user.is_2fa_enabled})
+
+@user_bp.route('/me', methods=['GET'])
+def get_current_user():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    return jsonify({
+        'id': user.id,
+        'email': user.email,
+        'role': user.role.name if user.role else None,
+        'faculty_id': user.faculty_id,
+        'first_name': user.first_name,
+        'last_name': user.last_name
+    })

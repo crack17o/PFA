@@ -90,3 +90,44 @@ def delete_book(book_id):
     db.session.delete(book)
     db.session.commit()
     return jsonify({'message': 'Book deleted'})
+
+@book_bp.route('/books/<book_id>', methods=['PUT'])
+@limiter.limit('5 per minute')
+def edit_book(book_id):
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    book = Book.query.get(book_id)
+    if not user or not book:
+        return jsonify({'error': 'Unauthorized'}), 401
+    # Superadmin peut éditer n'importe quel livre
+    if user.role.name == 'superadmin':
+        pass
+    elif user.role.name == 'prof' and book.added_by_id != user.id:
+        return jsonify({'error': 'Forbidden'}), 403
+    elif user.role.name == 'faculty_admin' and book.faculty_id != user.faculty_id:
+        return jsonify({'error': 'Forbidden'}), 403
+    # Faculté modifiable seulement par superadmin
+    if user.role.name == 'superadmin':
+        faculty_id = request.form.get('faculty_id', book.faculty_id)
+        book.faculty_id = faculty_id
+    # Mettre à jour les champs
+    title = request.form.get('title', book.title)
+    author = request.form.get('author', book.author)
+    book.title = title
+    book.author = author
+    # Gérer le remplacement du fichier PDF
+    if 'file' in request.files and request.files['file']:
+        file = request.files['file']
+        ext = os.path.splitext(file.filename)[1]
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        save_path = os.path.join(current_app.root_path, 'static', 'books', unique_name)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        file.save(save_path)
+        # Supprimer l'ancien fichier
+        if book.file_url:
+            old_path = os.path.join(current_app.root_path, book.file_url.lstrip('/'))
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        book.file_url = f"/static/books/{unique_name}"
+    db.session.commit()
+    return jsonify({'message': 'Book updated', 'id': book.id, 'file_url': book.file_url})
