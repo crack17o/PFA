@@ -75,13 +75,13 @@ def login():
     # Détermine la redirection selon le rôle
     role_name = user.role.name if user.role else None
     if role_name == 'student':
-        redirect_url = '/student/dashboard'
+        redirect_url = 'https://pfa-mxrh.onrender.com//student/dashboard'
     elif role_name == 'prof':
-        redirect_url = '/prof/dashboard'
+        redirect_url = 'https://pfa-mxrh.onrender.com//prof/dashboard'
     elif role_name == 'faculty_admin':
-        redirect_url = '/faculty/dashboard'
+        redirect_url = 'https://pfa-mxrh.onrender.com//faculty/dashboard'
     elif role_name == 'superadmin':
-        redirect_url = '/admin/dashboard'
+        redirect_url = 'https://pfa-mxrh.onrender.com//admin/dashboard'
     else:
         redirect_url = '/'
     # OTP/2FA logic
