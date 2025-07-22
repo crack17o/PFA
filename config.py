@@ -8,8 +8,8 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    SESSION_TYPE = 'sqlalchemy'
-    # SESSION_SQLALCHEMY doit être assigné dynamiquement dans create_app (voir app/__init__.py)
+    SESSION_TYPE = 'filesystem'
+    # SESSION_SQLALCHEMY retiré : plus de backend SQLAlchemy pour la session
     PERMANENT_SESSION_LIFETIME = 3600  # 1 heure en secondes
     SESSION_COOKIE_SECURE = True  # Important pour HTTPS (Render)
     SESSION_COOKIE_SAMESITE = "Lax"

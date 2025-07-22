@@ -19,10 +19,8 @@ limiter = Limiter(key_func=get_remote_address)
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
-    # Configure Flask-Session pour SQLAlchemy
-    app.config['SESSION_TYPE'] = 'sqlalchemy'
-    app.config['SESSION_SQLALCHEMY'] = db
-    app.config['SESSION_TABLE'] = 'session'
+    # Configure Flask-Session pour filesystem (aucun conflit de table)
+    app.config['SESSION_TYPE'] = 'filesystem'
     db.init_app(app)
     mail.init_app(app)
     session_ext.init_app(app)
