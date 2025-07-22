@@ -9,9 +9,9 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     SESSION_TYPE = 'sqlalchemy'
-    SESSION_SQLALCHEMY = None
+    # SESSION_SQLALCHEMY doit être assigné dynamiquement dans create_app (voir app/__init__.py)
     PERMANENT_SESSION_LIFETIME = 3600  # 1 heure en secondes
     SESSION_COOKIE_SECURE = True  # Important pour HTTPS (Render)
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True
-    # SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN')  # Décommente si tu utilises un domaine custom
+    SESSION_COOKIE_DOMAIN = "pfa-mxrh.onrender.com"
