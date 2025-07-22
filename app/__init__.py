@@ -22,6 +22,7 @@ def create_app():
     # Configure Flask-Session pour SQLAlchemy
     app.config['SESSION_TYPE'] = 'sqlalchemy'
     app.config['SESSION_SQLALCHEMY'] = db
+    app.config['SESSION_TABLE'] = 'session'
     db.init_app(app)
     mail.init_app(app)
     session_ext.init_app(app)
