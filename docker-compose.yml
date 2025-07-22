@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: unimate_db
+      MYSQL_USER: unimate
+      MYSQL_PASSWORD: KingStone17
+      MYSQL_ROOT_PASSWORD: KingStone17
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  web:
+    build: .
+    command: python main.py
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=mysql+pymysql://unimate:KingStone17@mysql-unimate.alwaysdata.ne/unimate_db
+    depends_on:
+      - db
+
+volumes:
+  db_data:

@@ -75,13 +75,13 @@ def login():
     # Détermine la redirection selon le rôle
     role_name = user.role.name if user.role else None
     if role_name == 'student':
-        redirect_url = 'https://pfa-mxrh.onrender.com//student/dashboard'
+        redirect_url = '/student/dashboard'
     elif role_name == 'prof':
-        redirect_url = 'https://pfa-mxrh.onrender.com//prof/dashboard'
+        redirect_url = '/prof/dashboard'
     elif role_name == 'faculty_admin':
-        redirect_url = 'https://pfa-mxrh.onrender.com//faculty/dashboard'
+        redirect_url = '/faculty/dashboard'
     elif role_name == 'superadmin':
-        redirect_url = 'https://pfa-mxrh.onrender.com//admin/dashboard'
+        redirect_url = '/admin/dashboard'
     else:
         redirect_url = '/'
     # OTP/2FA logic
@@ -97,6 +97,7 @@ def login():
         msg = Message('Votre code OTP', sender=sender, recipients=[email])
         msg.html = render_template('emails/otp.html', otp=otp)
         mail.send(msg)
+        redirect_url = '/otp-login'
         return jsonify({'2fa_required': True, 'redirect_url': redirect_url})
     session['user_id'] = user.id
     session['role'] = user.role.name if user.role else None
@@ -115,7 +116,24 @@ def verify_otp():
     if session.get('otp') == otp:
         session.pop('otp')
         session.pop('otp_expiry')
-        return jsonify({'message': 'OTP verified'})
+        # Récupère l'utilisateur connecté
+        user_id = session.get('user_id')
+        user = User.query.get(user_id) if user_id else None
+        if user and user.role:
+            role_name = user.role.name
+            if role_name == 'student':
+                redirect_url = '/student/dashboard'
+            elif role_name == 'prof':
+                redirect_url = '/prof/dashboard'
+            elif role_name == 'faculty_admin':
+                redirect_url = '/faculty/dashboard'
+            elif role_name == 'superadmin':
+                redirect_url = '/admin/dashboard'
+            else:
+                redirect_url = '/'
+        else:
+            redirect_url = '/'
+        return jsonify({'message': 'OTP verified', 'redirect_url': redirect_url})
     return jsonify({'error': 'Invalid OTP'}), 401
 
 @auth_bp.route('/reset-password', methods=['POST'])

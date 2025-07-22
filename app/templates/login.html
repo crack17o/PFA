@@ -45,6 +45,8 @@
                 // Redirige ou affiche 2FA si nécessaire
                 if (data["2fa_required"]) {
                     msg.textContent = 'Un code OTP a été envoyé à votre email.';
+                    const url = data.redirect_url || '/';
+                    setTimeout(() => window.location.href = url, 1000);
                 } else {
                     const url = data.redirect_url || '/';
                     setTimeout(() => window.location.href = url, 1000);

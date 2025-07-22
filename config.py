@@ -1,6 +1,6 @@
 import os
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev_secret')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'mysql+pymysql://user:password@localhost/unimate')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.example.com')
@@ -11,3 +11,7 @@ class Config:
     SESSION_TYPE = 'sqlalchemy'
     SESSION_SQLALCHEMY = None
     PERMANENT_SESSION_LIFETIME = 3600  # 1 heure en secondes
+    SESSION_COOKIE_SECURE = True  # Important pour HTTPS (Render)
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_HTTPONLY = True
+    # SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN')  # Décommente si tu utilises un domaine custom

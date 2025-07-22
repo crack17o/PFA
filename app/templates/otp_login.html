@@ -22,12 +22,14 @@ document.getElementById('otpLoginForm').addEventListener('submit', async functio
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ otp })
-        });
+        });d
         const data = await res.json();
         if (res.ok) {
             msg.textContent = data.message || 'Connexion validée.';
             msg.className = 'mt-4 text-green-600 text-center text-sm';
-            setTimeout(() => window.location.href = '/', 1000);
+            setTimeout(() => {
+                window.location.href = data.redirect_url || '/';
+            }, 1000);
         } else {
             msg.textContent = data.error || 'OTP invalide.';
             msg.className = 'mt-4 text-red-600 text-center text-sm';
