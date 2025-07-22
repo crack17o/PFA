@@ -1,73 +1,108 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mx-auto py-8">
-  <h1 class="text-3xl font-bold mb-6">Profil Administrateur</h1>
-  <div class="max-w-lg mx-auto bg-white rounded-lg shadow-lg p-8">
-    <form id="adminProfileForm" class="space-y-4">
-      <div class="flex gap-2">
-        <div class="w-1/2">
-          <label class="block mb-2">Prénom :</label>
-          <input type="text" id="profileFirstName" class="w-full border rounded px-3 py-2" required>
+<div class="w-full min-h-screen bg-gray-100 py-12 px-4 flex flex-col items-center justify-center">
+  <div class="flex flex-col items-center mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <i class="fas fa-user-shield text-blue-700 text-3xl"></i>
+      <h1 class="text-3xl md:text-4xl font-bold text-blue-700 tracking-tight">Profil Administrateur</h1>
+    </div>
+    <p class="text-base text-gray-600">Gérez vos informations personnelles UniMate</p>
+  </div>
+  <div class="relative w-full max-w-lg mx-auto">
+    <!-- Overlay de chargement -->
+    <div id="profileOverlay" class="hidden absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur rounded-2xl">
+      <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+    <div class="bg-white/70 shadow-xl border border-blue-100 backdrop-blur-md rounded-2xl p-8">
+      <form id="adminProfileForm" class="space-y-5">
+        <div class="flex gap-4">
+          <div class="w-1/2">
+            <label class="block mb-1 text-blue-900 font-medium">Prénom :</label>
+            <input type="text" id="profileFirstName" class="w-full rounded-lg px-3 py-2 border border-blue-200 focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white/70" required>
+          </div>
+          <div class="w-1/2">
+            <label class="block mb-1 text-blue-900 font-medium">Nom :</label>
+            <input type="text" id="profileLastName" class="w-full rounded-lg px-3 py-2 border border-blue-200 focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white/70" required>
+          </div>
         </div>
-        <div class="w-1/2">
-          <label class="block mb-2">Nom :</label>
-          <input type="text" id="profileLastName" class="w-full border rounded px-3 py-2" required>
+        <div>
+          <label class="block mb-1 text-blue-900 font-medium">Email :</label>
+          <input type="email" id="profileEmail" class="w-full rounded-lg px-3 py-2 border border-blue-200 bg-gray-100 text-gray-500" required disabled>
         </div>
-      </div>
-      <label class="block mb-2">Email :</label>
-      <input type="email" id="profileEmail" class="w-full border rounded px-3 py-2" required disabled>
-      <label class="block mb-2">Rôle :</label>
-      <input type="text" id="profileRole" class="w-full border rounded px-3 py-2" required disabled>
-      <div id="profileFacultyDiv" style="display:none;">
-        <label class="block mb-2">Faculté :</label>
-        <input type="text" id="profileFaculty" class="w-full border rounded px-3 py-2" disabled>
-      </div>
-      <div class="flex justify-end gap-2">
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Enregistrer</button>
-      </div>
-    </form>
-    <div id="profileMsg" class="mt-4 text-center text-sm"></div>
+        <div>
+          <label class="block mb-1 text-blue-900 font-medium">Rôle :</label>
+          <input type="text" id="profileRole" class="w-full rounded-lg px-3 py-2 border border-blue-200 bg-gray-100 text-gray-500" required disabled>
+        </div>
+        <div id="profileFacultyDiv" style="display:none;">
+          <label class="block mb-1 text-blue-900 font-medium">Faculté :</label>
+          <input type="text" id="profileFaculty" class="w-full rounded-lg px-3 py-2 border border-blue-200 bg-gray-100 text-gray-500" disabled>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button type="submit" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white font-semibold shadow flex items-center gap-2">
+            <i class="fas fa-save"></i> Enregistrer
+          </button>
+        </div>
+      </form>
+      <div id="profileMsg" class="mt-4 text-center text-sm"></div>
+    </div>
   </div>
 </div>
 <script>
+const overlay = document.getElementById('profileOverlay');
 async function loadAdminProfile() {
-  const res = await fetch('/api/user/profile');
-  const data = await res.json();
-  if (data.error) {
-    document.getElementById('profileMsg').textContent = data.error;
+  overlay.classList.remove('hidden');
+  try {
+    const res = await fetch('/api/user/profile');
+    const data = await res.json();
+    if (data.error) {
+      document.getElementById('profileMsg').textContent = data.error;
+      document.getElementById('profileMsg').className = 'mt-4 text-red-600 text-center text-sm';
+      overlay.classList.add('hidden');
+      return;
+    }
+    document.getElementById('profileFirstName').value = data.first_name || '';
+    document.getElementById('profileLastName').value = data.last_name || '';
+    document.getElementById('profileEmail').value = data.email || '';
+    document.getElementById('profileRole').value = data.role || '';
+    if (data.faculty_name) {
+      document.getElementById('profileFacultyDiv').style.display = '';
+      document.getElementById('profileFaculty').value = data.faculty_name;
+    } else {
+      document.getElementById('profileFacultyDiv').style.display = 'none';
+    }
+  } catch (e) {
+    document.getElementById('profileMsg').textContent = 'Erreur de chargement du profil.';
     document.getElementById('profileMsg').className = 'mt-4 text-red-600 text-center text-sm';
-    return;
   }
-  document.getElementById('profileFirstName').value = data.first_name || '';
-  document.getElementById('profileLastName').value = data.last_name || '';
-  document.getElementById('profileEmail').value = data.email || '';
-  document.getElementById('profileRole').value = data.role || '';
-  if (data.faculty_name) {
-    document.getElementById('profileFacultyDiv').style.display = '';
-    document.getElementById('profileFaculty').value = data.faculty_name;
-  } else {
-    document.getElementById('profileFacultyDiv').style.display = 'none';
-  }
+  overlay.classList.add('hidden');
 }
 loadAdminProfile();
 document.getElementById('adminProfileForm').onsubmit = async function(e) {
   e.preventDefault();
+  overlay.classList.remove('hidden');
   const first_name = document.getElementById('profileFirstName').value;
   const last_name = document.getElementById('profileLastName').value;
-  const res = await fetch('/api/admin/profile', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ first_name, last_name })
-  });
-  const data = await res.json();
-  const msg = document.getElementById('profileMsg');
-  if (res.ok) {
-    msg.textContent = data.message || 'Profil mis à jour.';
-    msg.className = 'mt-4 text-green-600 text-center text-sm';
-  } else {
-    msg.textContent = data.error || 'Erreur lors de la mise à jour.';
+  try {
+    const res = await fetch('/api/admin/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ first_name, last_name })
+    });
+    const data = await res.json();
+    const msg = document.getElementById('profileMsg');
+    if (res.ok) {
+      msg.textContent = data.message || 'Profil mis à jour.';
+      msg.className = 'mt-4 text-green-600 text-center text-sm';
+    } else {
+      msg.textContent = data.error || 'Erreur lors de la mise à jour.';
+      msg.className = 'mt-4 text-red-600 text-center text-sm';
+    }
+  } catch (e) {
+    const msg = document.getElementById('profileMsg');
+    msg.textContent = 'Erreur lors de la mise à jour.';
     msg.className = 'mt-4 text-red-600 text-center text-sm';
   }
+  overlay.classList.add('hidden');
 };
 </script>
 {% endblock %}

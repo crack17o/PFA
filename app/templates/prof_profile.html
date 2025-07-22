@@ -1,25 +1,54 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="max-w-md mx-auto p-6">
-    <h2 class="text-2xl font-bold text-blue-600 mb-4">Mon profil</h2>
-    <form id="profileForm" class="space-y-4">
-        <div>
-            <label class="block text-gray-700">Email</label>
-            <input type="email" name="email" id="emailInput" required class="w-full px-4 py-2 border rounded">
-            <label class="block text-gray-700">Mot de passe actuel</label>
-            <input type="password" name="old_password" id="oldPasswordInput" class="w-full px-4 py-2 border rounded">
-            <label class="block text-gray-700">Nouveau mot de passe</label>
-            <input type="password" name="new_password" id="newPasswordInput" class="w-full px-4 py-2 border rounded">
-        </div>
-        <button type="submit" class="w-full bg-orange-400 text-white py-2 rounded font-semibold hover:bg-blue-600 transition">Mettre à jour</button>
-    </form>
-    <div id="profileMsg" class="mt-4 text-center text-sm"></div>
-    <div class="mt-6">
-        <label class="block text-gray-700 mb-2">Double authentification (2FA)</label>
-        <button id="toggle2faBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Activer/Désactiver 2FA</button>
-        <span id="2faStatus" class="ml-2 text-sm"></span>
+<div class="mx-auto py-10 max-w-lg">
+  <div class="flex items-center gap-3 mb-8">
+    <i class="fas fa-user-circle text-3xl" style="color:#2196f3;"></i>
+    <h1 class="text-3xl font-bold" style="color:#2196f3;">Mon profil</h1>
+  </div>
+  <form id="profileForm" class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-100 p-8 flex flex-col gap-6">
+    <label class="font-semibold text-blue-900 flex flex-col gap-2">
+      <span><i class="fas fa-envelope mr-2 text-blue-400"></i>Email</span>
+      <input type="email" name="email" id="emailInput" required class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </label>
+    <label class="font-semibold text-blue-900 flex flex-col gap-2">
+      <span><i class="fas fa-lock mr-2 text-blue-400"></i>Mot de passe actuel</span>
+      <input type="password" name="old_password" id="oldPasswordInput" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </label>
+    <label class="font-semibold text-blue-900 flex flex-col gap-2">
+      <span><i class="fas fa-key mr-2 text-orange-500"></i>Nouveau mot de passe</span>
+      <input type="password" name="new_password" id="newPasswordInput" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </label>
+    <div class="flex items-center gap-4 mt-2">
+      <span class="font-semibold text-blue-900"><i class="fas fa-shield-alt mr-2 text-orange-500"></i>Double authentification (2FA)</span>
+      <button id="toggle2faBtn" type="button" class="relative w-14 h-8 rounded-full transition-colors duration-200 focus:outline-none">
+        <span class="absolute left-1 top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200" id="toggle-knob"></span>
+        <span class="sr-only">Activer/Désactiver 2FA</span>
+      </button>
+      <span id="2faStatus" class="ml-2 text-base font-semibold"></span>
     </div>
+    <button type="submit" class="px-5 py-2 rounded-lg font-semibold text-white shadow" style="background:#2196f3;">Mettre à jour</button>
+  </form>
+  <div id="profileMsg" class="mt-5 text-green-600 font-semibold text-center"></div>
 </div>
+<style>
+#profileForm { box-shadow: 0 8px 32px 0 rgba(33,150,243,0.10); }
+#toggle2faBtn {
+  background: #e0e7ef;
+  border: 2px solid #b6c6e3;
+}
+#toggle2faBtn.active {
+  background: #2196f3;
+  border-color: #2196f3;
+}
+#toggle-knob {
+  transition: transform 0.2s;
+  background: #fff;
+}
+#toggle2faBtn.active #toggle-knob {
+  transform: translateX(24px);
+  background: #ff9800;
+}
+</style>
 <script>
 let current2fa = false;
 function update2faStatus(enabled) {

@@ -22,24 +22,41 @@
         <tbody id="sessionsList"></tbody>
     </table>
 </div>
-<div id="sessionModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-    <h2 id="sessionModalTitle" class="text-xl font-bold mb-4">Ajouter une session</h2>
-    <form id="sessionForm">
+<div id="sessionOverlay" class="fixed inset-0 z-40 hidden bg-black/40 backdrop-blur-sm"></div>
+<div id="sessionModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+  <div class="bg-white bg-opacity-90 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-200 p-8 w-full max-w-md relative transition-all duration-200">
+    <div class="flex items-center gap-3 mb-5">
+      <i class="fas fa-calendar-plus text-2xl" style="color:#2196f3;"></i>
+      <h2 id="sessionModalTitle" class="text-2xl font-bold" style="color:#2196f3;">Ajouter une session</h2>
+    </div>
+    <form id="sessionForm" class="flex flex-col gap-5">
       <input type="hidden" id="sessionId">
-      <label class="block mb-2">Date et heure :</label>
-      <input type="datetime-local" id="sessionDate" class="w-full border rounded px-3 py-2 mb-4" required>
-      <label class="block mb-2">Statut :</label>
-      <select id="sessionStatus" class="w-full border rounded px-3 py-2 mb-4" required>
-        <option value="levée">Levée</option>
-        <option value="confirmée">Confirmée</option>
-        <option value="en attente">En attente</option>
-      </select>
-      <div class="flex justify-end gap-2">
-        <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeSessionModal()">Annuler</button>
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+      <label class="font-semibold text-blue-900 flex flex-col gap-2">
+        <span><i class="fas fa-clock mr-2 text-blue-400"></i>Date et heure</span>
+        <input type="datetime-local" id="sessionDate" class="border border-blue-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required>
+      </label>
+      <label class="font-semibold text-blue-900 flex flex-col gap-2">
+        <span><i class="fas fa-info-circle mr-2 text-orange-500"></i>Statut</span>
+        <select id="sessionStatus" class="border border-blue-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required>
+          <option value="levée">Levée</option>
+          <option value="confirmée">Confirmée</option>
+          <option value="en attente">En attente</option>
+        </select>
+      </label>
+      <div class="flex justify-end gap-3 mt-2">
+        <button type="button" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#ff9800;" onclick="closeSessionModal()"><i class='fas fa-times'></i> Annuler</button>
+        <button type="submit" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#43a047;"><i class='fas fa-check'></i> Valider</button>
       </div>
     </form>
+  </div>
+</div>
+<div id="loading-overlay" class="fixed inset-0 z-60 hidden flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="flex flex-col items-center">
+    <svg class="animate-spin h-12 w-12 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+    </svg>
+    <span class="text-white text-lg font-semibold">Traitement en cours...</span>
   </div>
 </div>
 <script>
@@ -123,6 +140,7 @@ function renderSessions() {
 }
 
 function openSessionModal(mode, sessionObj) {
+    document.getElementById('sessionOverlay').classList.remove('hidden');
     document.getElementById('sessionModal').classList.remove('hidden');
     document.getElementById('sessionForm').reset();
     document.getElementById('sessionId').value = '';
@@ -138,6 +156,9 @@ function openSessionModal(mode, sessionObj) {
 
 function closeSessionModal() {
     document.getElementById('sessionModal').classList.add('hidden');
+    setTimeout(() => {
+        document.getElementById('sessionOverlay').classList.add('hidden');
+    }, 150);
 }
 
 document.getElementById('selectCourse').addEventListener('change', function() {
@@ -152,6 +173,8 @@ document.getElementById('btnAddSession').addEventListener('click', function() {
 
 document.getElementById('sessionForm').onsubmit = function(e) {
     e.preventDefault();
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
     const id = document.getElementById('sessionId').value;
     const date = document.getElementById('sessionDate').value;
     const status = document.getElementById('sessionStatus').value;
@@ -170,11 +193,15 @@ document.getElementById('sessionForm').onsubmit = function(e) {
     })
         .then(res => res.json())
         .then(data => {
+            overlay.classList.add('hidden');
             closeSessionModal();
             loadSessions();
             alert(data.message || 'Opération réussie !');
         })
-        .catch(() => alert('Erreur lors de l\'opération.'));
+        .catch(() => {
+            overlay.classList.add('hidden');
+            alert('Erreur lors de l\'opération.');
+        });
 };
 
 function deleteSession(sessionId) {
@@ -193,4 +220,10 @@ function deleteSession(sessionId) {
 
 window.addEventListener('DOMContentLoaded', loadCourses);
 </script>
+<style>
+  /* Z-index pour overlays et modale */
+  .z-40 { z-index: 40; }
+  .z-50 { z-index: 50; }
+  .z-60 { z-index: 60; }
+</style>
 {% endblock %}

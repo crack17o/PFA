@@ -1,17 +1,22 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mx-auto py-8">
-  <h1 class="text-3xl font-bold mb-6">Livres et documents</h1>
-  <table class="min-w-full bg-white rounded-lg shadow">
-    <thead>
-      <tr>
-        <th class="py-2 px-4">Titre</th>
-        <th class="py-2 px-4">Auteur</th>
-        <th class="py-2 px-4">Télécharger</th>
-      </tr>
-    </thead>
-    <tbody id="books-list"></tbody>
-  </table>
+<div class="w-full max-w-3xl mx-auto flex flex-col items-center justify-center py-12 px-4">
+  <div class="flex items-center gap-3 mb-6">
+    <i class="fa-solid fa-book-open text-3xl" style="color:#ff9800;"></i>
+    <h1 class="text-3xl md:text-4xl font-bold text-blue-700 tracking-tight">Livres et documents</h1>
+  </div>
+  <div class="w-full overflow-x-auto">
+    <table class="min-w-full bg-white/70 rounded-2xl shadow-xl border border-blue-100 backdrop-blur-md">
+      <thead>
+        <tr class="text-blue-700 text-lg">
+          <th class="py-3 px-4 text-left">Titre</th>
+          <th class="py-3 px-4 text-left">Auteur</th>
+          <th class="py-3 px-4 text-left">Télécharger</th>
+        </tr>
+      </thead>
+      <tbody id="books-list"></tbody>
+    </table>
+  </div>
 </div>
 <script>
 function loadBooks() {
@@ -26,7 +31,14 @@ function loadBooks() {
       }
       (Array.isArray(data) ? data : []).forEach(b => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4'>${b.title}</td><td class='py-2 px-4'>${b.author}</td><td class='py-2 px-4'><a href='${b.file_url}' class='bg-green-500 text-white px-2 py-1 rounded' target='_blank'>Télécharger</a></td>`;
+        tr.innerHTML = `
+          <td class='py-3 px-4 align-middle'><i class='fa fa-book text-blue-700 mr-2'></i>${b.title}</td>
+          <td class='py-3 px-4 align-middle'><i class='fa fa-user text-blue-700 mr-2'></i>${b.author}</td>
+          <td class='py-3 px-4 align-middle'>
+            <a href='${b.file_url}' target='_blank' style='background-color:#ff9800; color:#fff;' class='inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold shadow hover:brightness-110 transition-colors duration-200 text-base'>
+              <i class='fa fa-download'></i> Télécharger
+            </a>
+          </td>`;
         tbody.appendChild(tr);
       });
     });

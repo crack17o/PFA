@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mx-auto py-8 max-w-2xl">
-  <h1 class="text-3xl font-bold mb-6">Historique de mes conversations avec le chatbot</h1>
+<div class="mx-auto py-10 max-w-3xl">
+  <div class="flex items-center gap-3 mb-8">
+    <i class="fas fa-comments text-3xl" style="color:#2196f3;"></i>
+    <h1 class="text-3xl font-bold" style="color:#2196f3;">Historique de mes conversations</h1>
+  </div>
   <div id="chat-history"></div>
 </div>
 <script>
@@ -11,11 +14,25 @@ fetch('/api/chat/history/all', {method: 'GET'})
     const container = document.getElementById('chat-history');
     (data.conversations || []).forEach(conv => {
       const div = document.createElement('div');
-      div.className = 'mb-6 p-4 bg-white rounded shadow';
-      div.innerHTML = `<h2 class='text-xl font-bold mb-2'>Conversation #${conv.id}</h2>`;
+      div.className = 'mb-8 p-6 rounded-2xl shadow-lg backdrop-blur bg-white/40 border border-blue-100';
+      div.style = 'box-shadow: 0 4px 24px 0 rgba(33,150,243,0.08);';
+      div.innerHTML = `
+        <div class='flex items-center gap-2 mb-3'>
+          <i class="fas fa-comment-dots text-lg" style="color:#ff9800;"></i>
+          <h2 class='text-xl font-bold' style='color:#ff9800;'>Conversation #${conv.id}</h2>
+        </div>
+        <div class='space-y-2'>
+      `;
       (conv.messages || []).forEach(msg => {
-        div.innerHTML += `<div class='mb-1'><span class='font-semibold'>${msg.sender === 'user' ? 'Moi' : 'Bot'}:</span> ${msg.content}</div>`;
+        div.innerHTML += `
+          <div class='flex items-start gap-2 mb-1'>
+            <i class="${msg.sender === 'user' ? 'fas fa-user-circle' : 'fas fa-robot'} text-base" style="color:${msg.sender === 'user' ? '#ff9800' : '#2196f3'};"></i>
+            <span class='font-semibold' style='color:${msg.sender === 'user' ? '#ff9800' : '#2196f3'};'>${msg.sender === 'user' ? 'Moi' : 'Bot'}:</span>
+            <span class='text-base' style='color:#222;'>${msg.content}</span>
+          </div>
+        `;
       });
+      div.innerHTML += '</div>';
       container.appendChild(div);
     });
   });

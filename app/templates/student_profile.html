@@ -1,32 +1,77 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mx-auto py-8 max-w-lg">
-  <h1 class="text-3xl font-bold mb-6">Mon profil</h1>
-  <form id="profile-form" class="bg-white rounded-lg shadow p-6 flex flex-col gap-4">
-    <label>Email
-      <input type="email" id="email" class="border rounded px-3 py-2 w-full" required>
+<div class="mx-auto py-10 max-w-lg">
+  <div class="flex items-center gap-3 mb-8">
+    <i class="fas fa-user-circle text-3xl" style="color:#2196f3;"></i>
+    <h1 class="text-3xl font-bold" style="color:#2196f3;">Mon profil</h1>
+  </div>
+  <form id="profile-form" class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-100 p-8 flex flex-col gap-6">
+    <label class="font-semibold text-blue-900 flex flex-col gap-2">
+      <span><i class="fas fa-envelope mr-2 text-blue-400"></i>Email</span>
+      <input type="email" id="email" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" required>
     </label>
-    <label>Mot de passe actuel
-      <input type="password" id="old_password" class="border rounded px-3 py-2 w-full">
+    <label class="font-semibold text-blue-900 flex flex-col gap-2">
+      <span><i class="fas fa-lock mr-2 text-blue-400"></i>Mot de passe actuel</span>
+      <input type="password" id="old_password" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400">
     </label>
-    <label>Nouveau mot de passe
-      <input type="password" id="new_password" class="border rounded px-3 py-2 w-full">
+    <label class="font-semibold text-blue-900 flex flex-col gap-2">
+      <span><i class="fas fa-key mr-2 text-orange-500"></i>Nouveau mot de passe</span>
+      <input type="password" id="new_password" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400">
     </label>
-    <label class="flex items-center gap-2">
-      <input type="checkbox" id="2fa"> <span id="2fa-label">Activer la double authentification (2FA)</span>
-    </label>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Mettre à jour</button>
+    <div class="flex items-center gap-4 mt-2">
+      <span class="font-semibold text-blue-900"><i class="fas fa-shield-alt mr-2 text-orange-500"></i>Double authentification (2FA)</span>
+      <button id="toggle-2fa" type="button" class="relative w-14 h-8 rounded-full transition-colors duration-200 focus:outline-none">
+        <span class="absolute left-1 top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200" id="toggle-knob"></span>
+        <span class="sr-only">Activer/Désactiver 2FA</span>
+      </button>
+      <span id="2fa-label" class="ml-2 text-base font-semibold"></span>
+    </div>
+    <button type="submit" class="px-5 py-2 rounded-lg font-semibold text-white shadow" style="background:#2196f3;">Mettre à jour</button>
   </form>
-  <div id="profile-msg" class="mt-4 text-green-600 font-semibold"></div>
+  <div id="profile-msg" class="mt-5 text-green-600 font-semibold text-center"></div>
 </div>
+<style>
+#profile-form { box-shadow: 0 8px 32px 0 rgba(33,150,243,0.10); }
+#toggle-2fa {
+  background: #e0e7ef;
+  border: 2px solid #b6c6e3;
+}
+#toggle-2fa.active {
+  background: #2196f3;
+  border-color: #2196f3;
+}
+#toggle-knob {
+  transition: transform 0.2s;
+  background: #fff;
+}
+#toggle-2fa.active #toggle-knob {
+  transform: translateX(24px);
+  background: #ff9800;
+}
+</style>
 <script>
 fetch('/api/user/profile')
   .then(res => res.json())
   .then(data => {
     document.getElementById('email').value = data.email;
-    document.getElementById('2fa').checked = data.is_2fa_enabled;
+    set2faToggle(data.is_2fa_enabled);
     update2faLabel(data.is_2fa_enabled);
   });
+
+function set2faToggle(enabled) {
+  const toggle = document.getElementById('toggle-2fa');
+  const knob = document.getElementById('toggle-knob');
+  if (enabled) {
+    toggle.classList.add('active');
+    knob.style.transform = 'translateX(24px)';
+    knob.style.background = '#ff9800';
+  } else {
+    toggle.classList.remove('active');
+    knob.style.transform = 'translateX(0)';
+    knob.style.background = '#fff';
+  }
+  toggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+}
 
 function update2faLabel(enabled) {
   const label = document.getElementById('2fa-label');
@@ -40,12 +85,19 @@ function update2faLabel(enabled) {
     label.classList.remove('text-green-600');
   }
 }
+
+let is2faEnabled = false;
+document.getElementById('toggle-2fa').onclick = function() {
+  is2faEnabled = !is2faEnabled;
+  set2faToggle(is2faEnabled);
+  update2faLabel(is2faEnabled);
+};
+
 document.getElementById('profile-form').onsubmit = function(e) {
   e.preventDefault();
   const email = document.getElementById('email').value;
   const old_password = document.getElementById('old_password').value;
   const new_password = document.getElementById('new_password').value;
-  const enable2fa = document.getElementById('2fa').checked;
   fetch('/api/user/profile', {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
@@ -65,10 +117,12 @@ document.getElementById('profile-form').onsubmit = function(e) {
   fetch('/api/user/profile/2fa', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({enable: enable2fa})
+    body: JSON.stringify({enable: is2faEnabled})
   }).then(res => res.json()).then(data => {
     document.getElementById('profile-msg').textContent = data.message;
+    set2faToggle(data.is_2fa_enabled);
     update2faLabel(data.is_2fa_enabled);
+    is2faEnabled = data.is_2fa_enabled;
   });
 };
 </script>

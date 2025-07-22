@@ -2,6 +2,7 @@ Flask
 Flask-SQLAlchemy
 Flask-Mail
 Flask-Session
+Flask-Limiter
 Flask-Cors
 PyMySQL
 python-dotenv

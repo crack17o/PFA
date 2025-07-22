@@ -1,11 +1,41 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="text-center">
-    <div class="flex flex-col items-center mb-4">
-        <i class="fa-solid fa-graduation-cap text-blue-600" style="font-size:5rem;"></i>
+<div class="w-full max-w-2xl mx-auto flex flex-col items-center justify-center py-24 px-4">
+    <!-- Accroche colorée -->
+    <div class="flex flex-col items-center mb-6">
+        <h1 class="text-3xl md:text-4xl font-bold text-blue-700 mb-2 tracking-tight">Bienvenue sur votre assistant universitaire</h1>
     </div>
-    <h1 class="text-4xl font-extrabold text-blue-600 mb-2">Bienvenue sur UniMate</h1>
-    <p class="text-lg text-gray-700 mb-6">Votre assistant universitaire moderne pour la gestion des cours, livres, promotions et plus encore.</p>
-    <a href="/register" class="bg-orange-400 text-white px-6 py-2 rounded-full font-semibold shadow hover:bg-orange-500 transition">Commencer</a>
+    <p class="text-base md:text-lg text-gray-600 mb-4 text-center max-w-2xl">Votre plateforme tout-en-un pour gérer vos cours, accéder à vos livres, suivre vos promotions, échanger avec vos enseignants et profiter d'un assistant intelligent pour réussir votre parcours universitaire.</p>
+    <a href="/register" style="background-color:#ff9800!important; color:#fff!important;" class="px-8 py-3 rounded-full font-semibold shadow transition-colors duration-200 text-base md:text-lg hover:brightness-110">Commencer</a>
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <div class="flex items-center gap-4 p-4 rounded-xl bg-blue-50">
+            <i class="fa fa-users text-2xl text-blue-700"></i>
+            <div>
+                <div class="font-semibold text-blue-700">Communauté étudiante</div>
+                <div class="text-sm text-gray-600">Collaborez, échangez et progressez ensemble.</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 p-4 rounded-xl" style="background-color:#fff3e0;">
+            <i class="fa fa-lightbulb text-2xl" style="color:#ff9800;"></i>
+            <div>
+                <div class="font-semibold" style="color:#ff9800;">Assistant intelligent</div>
+                <div class="text-sm text-gray-600">Un chatbot pour répondre à vos questions 24/7.</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 p-4 rounded-xl bg-blue-50">
+            <i class="fa fa-calendar-alt text-2xl text-blue-700"></i>
+            <div>
+                <div class="font-semibold text-blue-700">Organisation simplifiée</div>
+                <div class="text-sm text-gray-600">Gérez vos emplois du temps et vos cours facilement.</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 p-4 rounded-xl" style="background-color:#fff3e0;">
+            <i class="fa fa-book-open text-2xl" style="color:#ff9800;"></i>
+            <div>
+                <div class="font-semibold" style="color:#ff9800;">Bibliothèque numérique</div>
+                <div class="text-sm text-gray-600">Accédez à tous vos livres et documents en un clic.</div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

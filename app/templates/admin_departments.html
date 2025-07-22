@@ -1,37 +1,47 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mx-auto py-8">
-  <h1 class="text-3xl font-bold mb-6">Gestion des départements</h1>
-<div class="flex justify-end mb-4">
-  <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openDepartmentModal('add')">Ajouter un département</button>
-</div>
-<table class="min-w-full bg-white rounded-lg shadow mb-8">
-  <thead>
-    <tr>
-      <th class="py-2 px-4">Nom</th>
-      <th class="py-2 px-4">Faculté</th>
-      <th class="py-2 px-4">Actions</th>
-    </tr>
-  </thead>
-  <tbody id="departments-list"></tbody>
-</table>
-<!-- Modal Ajout/Édition Département -->
-<div id="departmentModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-    <h2 id="departmentModalTitle" class="text-xl font-bold mb-4">Ajouter un département</h2>
-    <form id="departmentForm">
-      <input type="hidden" id="departmentId">
-      <label class="block mb-2">Nom :</label>
-      <input type="text" id="departmentName" class="w-full border rounded px-3 py-2 mb-4" required>
-      <label class="block mb-2">Faculté :</label>
-      <select id="departmentFaculty" class="w-full border rounded px-3 py-2 mb-4" required disabled></select>
-      <div class="flex justify-end gap-2">
-        <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeDepartmentModal()">Annuler</button>
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+<div class="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100">
+  <div class="max-w-3xl w-full mt-10 mb-10 px-4">
+    <div class="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-blue-100 p-10">
+      <h1 class="text-3xl font-extrabold mb-8 flex items-center gap-3" style="color:#2196f3;"><i class="fas fa-building"></i> Gestion des départements</h1>
+      <div class="flex justify-end mb-6">
+        <button class="px-5 py-2 rounded-lg font-semibold text-white shadow transition bg-green-600 hover:bg-green-700 flex items-center gap-2" onclick="openDepartmentModal('add')"><i class="fas fa-plus"></i> Ajouter un département</button>
       </div>
-    </form>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white/90 rounded-2xl shadow-lg border border-blue-100">
+          <thead>
+            <tr>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Nom</th>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Faculté</th>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="departments-list"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
-</div>
+  <!-- Modal Ajout/Édition Département -->
+  <div id="departmentModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white bg-opacity-95 rounded-2xl shadow-2xl border border-blue-200 p-8 w-full max-w-md relative transition-all duration-200">
+      <h2 id="departmentModalTitle" class="text-2xl font-bold mb-5 flex items-center gap-2" style="color:#2196f3;"><i class="fas fa-building"></i> Ajouter un département</h2>
+      <form id="departmentForm" class="flex flex-col gap-5">
+        <input type="hidden" id="departmentId">
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-tag mr-2 text-blue-400"></i>Nom</span>
+          <input type="text" id="departmentName" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-university mr-2 text-orange-500"></i>Faculté</span>
+          <select id="departmentFaculty" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required disabled></select>
+        </label>
+        <div class="flex justify-end gap-3 mt-2">
+          <button type="button" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#ff9800;" onclick="closeDepartmentModal()"><i class='fas fa-times'></i> Annuler</button>
+          <button type="submit" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#43a047;"><i class='fas fa-check'></i> Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 <script>
 function loadDepartments() {

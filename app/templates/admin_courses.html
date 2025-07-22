@@ -1,81 +1,103 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mx-auto py-8">
-  <h1 class="text-3xl font-bold mb-6">Gestion des cours</h1>
-  <div class="flex justify-between mb-4 items-center">
-    <div class="flex gap-4 items-center">
-      <input id="searchCourse" type="text" class="border rounded px-3 py-2" placeholder="Rechercher un nom de cours..." />
-      <label for="filterProf" class="font-semibold">Professeur :</label>
-      <select id="filterProf" class="border rounded px-3 py-2">
-        <option value="">Tous</option>
-      </select>
+<div class="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100">
+  <div class="max-w-5xl w-full mt-10 mb-10 px-4">
+    <div class="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-blue-100 p-10">
+      <h1 class="text-3xl font-extrabold mb-8 flex items-center gap-3" style="color:#2196f3;"><i class="fas fa-book"></i> Gestion des cours</h1>
+      <div class="flex flex-col md:flex-row md:justify-between mb-6 gap-4 items-center">
+        <div class="flex gap-4 items-center w-full md:w-auto">
+          <input id="searchCourse" type="text" class="border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" placeholder="Rechercher un nom de cours..." />
+          <label for="filterProf" class="font-semibold text-blue-900"><i class="fas fa-user mr-2 text-blue-400"></i>Professeur :</label>
+          <select id="filterProf" class="border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80">
+            <option value="">Tous</option>
+          </select>
+        </div>
+        <button class="px-5 py-2 rounded-lg font-semibold text-white shadow transition bg-green-600 hover:bg-green-700 flex items-center gap-2" onclick="openCourseModal('add')"><i class="fas fa-plus"></i> Ajouter un cours</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white/90 rounded-2xl shadow-lg border border-blue-100">
+          <thead>
+            <tr>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Nom</th>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Crédits</th>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Professeurs</th>
+              <th class="py-3 px-4 text-blue-700 font-bold text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="courses-list"></tbody>
+        </table>
+      </div>
     </div>
-    <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="openCourseModal('add')">Ajouter un cours</button>
   </div>
-  <table class="min-w-full bg-white rounded-lg shadow mb-8">
-    <thead>
-      <tr>
-        <th class="py-2 px-4">Nom</th>
-        <th class="py-2 px-4">Crédits</th>
-        <th class="py-2 px-4">Professeurs</th>
-        <th class="py-2 px-4">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="courses-list"></tbody>
-  </table>
   <!-- Modal Ajout/Édition Cours -->
-  <div id="courseModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-      <h2 id="courseModalTitle" class="text-xl font-bold mb-4">Ajouter un cours</h2>
-      <form id="courseForm">
+  <div id="courseModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white bg-opacity-95 rounded-2xl shadow-2xl border border-blue-200 p-8 w-full max-w-md relative transition-all duration-200">
+      <h2 id="courseModalTitle" class="text-2xl font-bold mb-5 flex items-center gap-2" style="color:#2196f3;"><i class="fas fa-book"></i> Ajouter un cours</h2>
+      <form id="courseForm" class="flex flex-col gap-5">
         <input type="hidden" id="courseId">
-        <label class="block mb-2">Nom :</label>
-        <input type="text" id="courseName" class="w-full border rounded px-3 py-2 mb-4" required>
-        <label class="block mb-2">Crédits :</label>
-        <input type="number" id="courseCredits" class="w-full border rounded px-3 py-2 mb-4" required>
-        <label class="block mb-2">Faculté :</label>
-        <select id="courseFaculty" class="w-full border rounded px-3 py-2 mb-4" required></select>
-        <label class="block mb-2">Département :</label>
-        <select id="courseDepartment" class="w-full border rounded px-3 py-2 mb-4" required></select>
-        <label class="block mb-2">Promotion :</label>
-        <select id="coursePromotion" class="w-full border rounded px-3 py-2 mb-4" required></select>
-        <label class="block mb-2">Semestre :</label>
-        <select id="courseSemester" class="w-full border rounded px-3 py-2 mb-4" required></select>
-        <div class="flex justify-end gap-2">
-          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeCourseModal()">Annuler</button>
-          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-tag mr-2 text-blue-400"></i>Nom</span>
+          <input type="text" id="courseName" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-hashtag mr-2 text-orange-500"></i>Crédits</span>
+          <input type="number" id="courseCredits" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-university mr-2 text-blue-400"></i>Faculté</span>
+          <select id="courseFaculty" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required></select>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-building mr-2 text-orange-500"></i>Département</span>
+          <select id="courseDepartment" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required></select>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-users mr-2 text-blue-400"></i>Promotion</span>
+          <select id="coursePromotion" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required></select>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-calendar-alt mr-2 text-orange-500"></i>Semestre</span>
+          <select id="courseSemester" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80" required></select>
+        </label>
+        <div class="flex justify-end gap-3 mt-2">
+          <button type="button" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#ff9800;" onclick="closeCourseModal()"><i class='fas fa-times'></i> Annuler</button>
+          <button type="submit" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#43a047;"><i class='fas fa-check'></i> Valider</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal Affectation Prof -->
-  <div id="assignModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-      <h2 class="text-xl font-bold mb-4">Affecter un professeur</h2>
-      <form id="assignForm">
+  <div id="assignModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white bg-opacity-95 rounded-2xl shadow-2xl border border-blue-200 p-8 w-full max-w-md relative transition-all duration-200">
+      <h2 class="text-2xl font-bold mb-5 flex items-center gap-2" style="color:#2196f3;"><i class="fas fa-user-plus"></i> Affecter un professeur</h2>
+      <form id="assignForm" class="flex flex-col gap-5">
         <input type="hidden" id="assignCourseId">
-        <label class="block mb-2">Choisir le professeur :</label>
-        <select id="profSelect" class="w-full border rounded px-3 py-2 mb-4"></select>
-        <div class="flex justify-end gap-2">
-          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeAssignModal()">Annuler</button>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Affecter</button>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-user mr-2 text-blue-400"></i>Choisir le professeur</span>
+          <select id="profSelect" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 mb-4"></select>
+        </label>
+        <div class="flex justify-end gap-3 mt-2">
+          <button type="button" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#ff9800;" onclick="closeAssignModal()"><i class='fas fa-times'></i> Annuler</button>
+          <button type="submit" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#2196f3;"><i class='fas fa-check'></i> Affecter</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal Retrait Prof -->
-  <div id="unassignModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-      <h2 class="text-xl font-bold mb-4">Retirer un professeur</h2>
-      <form id="unassignForm">
+  <div id="unassignModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white bg-opacity-95 rounded-2xl shadow-2xl border border-blue-200 p-8 w-full max-w-md relative transition-all duration-200">
+      <h2 class="text-2xl font-bold mb-5 flex items-center gap-2" style="color:#2196f3;"><i class="fas fa-user-minus"></i> Retirer un professeur</h2>
+      <form id="unassignForm" class="flex flex-col gap-5">
         <input type="hidden" id="unassignCourseId">
-        <label class="block mb-2">Choisir le professeur à retirer :</label>
-        <select id="unassignProfSelect" class="w-full border rounded px-3 py-2 mb-4"></select>
-        <div class="flex justify-end gap-2">
-          <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeUnassignModal()">Annuler</button>
-          <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">Retirer</button>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-user mr-2 text-orange-500"></i>Choisir le professeur à retirer</span>
+          <select id="unassignProfSelect" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 mb-4"></select>
+        </label>
+        <div class="flex justify-end gap-3 mt-2">
+          <button type="button" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#ff9800;" onclick="closeUnassignModal()"><i class='fas fa-times'></i> Annuler</button>
+          <button type="submit" class="px-4 py-2 rounded-lg font-semibold text-white shadow transition" style="background:#e53935;"><i class='fas fa-check'></i> Retirer</button>
         </div>
       </form>
     </div>

@@ -1,4 +1,3 @@
-
 from flask import Blueprint, request, jsonify, session
 from app.models.user import User, Role
 from app.models.course import Course

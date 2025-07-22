@@ -1,15 +1,36 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="max-w-3xl mx-auto p-6">
-    <h2 class="text-2xl font-bold text-blue-600 mb-4">Ajouter un livre</h2>
-    <form id="addBookForm" class="flex flex-col gap-3 mb-6 bg-white rounded shadow p-4" enctype="multipart/form-data">
-        <input type="text" name="title" id="bookTitle" class="border rounded px-3 py-2" placeholder="Titre du livre" required>
-        <input type="text" name="author" id="bookAuthor" class="border rounded px-3 py-2" placeholder="Auteur" required>
-        <input type="file" name="file" id="bookFile" class="border rounded px-3 py-2" accept="application/pdf" required>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Ajouter</button>
+<div id="loading-overlay" class="fixed inset-0 z-60 hidden flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="flex flex-col items-center">
+    <svg class="animate-spin h-12 w-12 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+    </svg>
+    <span class="text-white text-lg font-semibold">Traitement en cours...</span>
+  </div>
+</div>
+<div class="mx-auto py-10 max-w-3xl">
+    <div class="flex items-center gap-3 mb-8">
+      <i class="fas fa-book-medical text-2xl" style="color:#2196f3;"></i>
+      <h2 class="text-2xl font-bold" style="color:#2196f3;">Ajouter un livre</h2>
+    </div>
+    <form id="addBookForm" class="flex flex-col gap-4 mb-8 bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-100 p-6" enctype="multipart/form-data">
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-book mr-2 text-blue-400"></i>Titre du livre</span>
+          <input type="text" name="title" id="bookTitle" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-user mr-2 text-orange-500"></i>Auteur</span>
+          <input type="text" name="author" id="bookAuthor" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+        </label>
+        <label class="font-semibold text-blue-900 flex flex-col gap-2">
+          <span><i class="fas fa-file-pdf mr-2 text-blue-400"></i>Fichier PDF</span>
+          <input type="file" name="file" id="bookFile" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" accept="application/pdf" required>
+        </label>
+        <button type="submit" class="px-5 py-2 rounded-lg font-semibold text-white shadow" style="background:#2196f3;">Ajouter</button>
     </form>
-    <h3 class="text-xl font-semibold mb-4">Livres ajoutés</h3>
-    <div id="booksList" class="space-y-4"></div>
+    <h3 class="text-xl font-semibold mb-4 flex items-center gap-2"><i class="fas fa-list text-orange-500"></i>Livres ajoutés</h3>
+    <div id="booksList" class="space-y-5"></div>
 </div>
 <script>
 async function loadBooks() {
@@ -25,33 +46,43 @@ async function loadBooks() {
     books.forEach(book => {
         window._bookData[book.id] = book;
         container.innerHTML += `
-        <div class="bg-white rounded shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
+        <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-xl border border-blue-100 p-5 flex flex-col md:flex-row md:items-center gap-4">
             <div class="flex-1">
-                <div class="font-semibold text-blue-600">${book.title}</div>
-                <div class="text-gray-700 text-sm">${book.author}</div>
-                <a href="${book.file_url}" target="_blank" class="text-orange-500 underline">Télécharger</a>
+                <div class="font-semibold text-blue-600 text-lg flex items-center gap-2"><i class='fas fa-book'></i> ${book.title}</div>
+                <div class="text-gray-700 text-sm flex items-center gap-2"><i class='fas fa-user text-orange-500'></i> ${book.author}</div>
+                <a href="${book.file_url}" target="_blank" class="text-orange-500 underline font-semibold flex items-center gap-1"><i class='fas fa-download'></i> Télécharger</a>
             </div>
-            <button onclick="openEditBookModal('${book.id}')" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-700 transition">Éditer</button>
-            <button onclick="deleteBook('${book.id}')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 transition">Supprimer</button>
+            <button onclick="openEditBookModal('${book.id}')" class="px-4 py-2 rounded-lg font-semibold text-white shadow bg-yellow-500 hover:bg-yellow-600 transition flex items-center gap-2"><i class='fas fa-edit'></i> Éditer</button>
+            <button onclick="deleteBook('${book.id}')" class="px-4 py-2 rounded-lg font-semibold text-white shadow bg-red-500 hover:bg-red-600 transition flex items-center gap-2"><i class='fas fa-trash'></i> Supprimer</button>
         </div>`;
     });
 }
 
 document.body.insertAdjacentHTML('beforeend', `
-<div id="editBookModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-    <h2 class="text-xl font-bold mb-4">Éditer le livre</h2>
-    <form id="editBookForm" enctype="multipart/form-data">
+<div id="editBookOverlay" class="fixed inset-0 z-40 hidden bg-black/40 backdrop-blur-sm"></div>
+<div id="editBookModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+  <div class="bg-white bg-opacity-90 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-200 p-8 w-full max-w-md relative transition-all duration-200">
+    <div class="flex items-center gap-3 mb-5">
+      <i class="fas fa-edit text-2xl" style="color:#ff9800;"></i>
+      <h2 class="text-2xl font-bold" style="color:#ff9800;">Éditer le livre</h2>
+    </div>
+    <form id="editBookForm" enctype="multipart/form-data" class="flex flex-col gap-4">
       <input type="hidden" id="editBookId">
-      <label class="block mb-2">Titre :</label>
-      <input type="text" id="editBookTitle" class="w-full border rounded px-3 py-2 mb-4" required>
-      <label class="block mb-2">Auteur :</label>
-      <input type="text" id="editBookAuthor" class="w-full border rounded px-3 py-2 mb-4" required>
-      <label class="block mb-2">Nouveau fichier (optionnel) :</label>
-      <input type="file" id="editBookFile" class="w-full border rounded px-3 py-2 mb-4" accept="application/pdf">
-      <div class="flex justify-end gap-2">
-        <button type="button" class="px-4 py-2 bg-gray-300 rounded" onclick="closeEditBookModal()">Annuler</button>
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Valider</button>
+      <label class="font-semibold text-blue-900 flex flex-col gap-2">
+        <span><i class="fas fa-book mr-2 text-blue-400"></i>Titre</span>
+        <input type="text" id="editBookTitle" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+      </label>
+      <label class="font-semibold text-blue-900 flex flex-col gap-2">
+        <span><i class="fas fa-user mr-2 text-orange-500"></i>Auteur</span>
+        <input type="text" id="editBookAuthor" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+      </label>
+      <label class="font-semibold text-blue-900 flex flex-col gap-2">
+        <span><i class="fas fa-file-pdf mr-2 text-blue-400"></i>Nouveau fichier (optionnel)</span>
+        <input type="file" id="editBookFile" class="border border-blue-200 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400" accept="application/pdf">
+      </label>
+      <div class="flex justify-end gap-3 mt-2">
+        <button type="button" class="px-4 py-2 rounded-lg font-semibold text-white shadow" style="background:#ff9800;" onclick="closeEditBookModal()"><i class='fas fa-times'></i> Annuler</button>
+        <button type="submit" class="px-4 py-2 rounded-lg font-semibold text-white shadow" style="background:#43a047;"><i class='fas fa-check'></i> Valider</button>
       </div>
     </form>
   </div>
@@ -59,35 +90,44 @@ document.body.insertAdjacentHTML('beforeend', `
 `);
 
 // --- MODALE ---
+// Ouvre la modale d'édition et affiche l'overlay
 function openEditBookModal(bookId) {
     const book = window._bookData[bookId];
+    document.getElementById('editBookOverlay').classList.remove('hidden');
     document.getElementById('editBookModal').classList.remove('hidden');
     document.getElementById('editBookId').value = book.id;
     document.getElementById('editBookTitle').value = book.title;
     document.getElementById('editBookAuthor').value = book.author;
     document.getElementById('editBookFile').value = '';
-    // Suppression du select cours pour édition
     if (document.getElementById('editBookCourse')) {
         document.getElementById('editBookCourse').value = '';
     }
 }
+// Ferme la modale d'édition et masque l'overlay (avec délai pour l'animation)
 function closeEditBookModal() {
     document.getElementById('editBookModal').classList.add('hidden');
+    setTimeout(() => {
+        document.getElementById('editBookOverlay').classList.add('hidden');
+    }, 150);
 }
+
 document.getElementById('editBookForm').onsubmit = async function(e) {
     e.preventDefault();
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
     const bookId = document.getElementById('editBookId').value;
     const title = document.getElementById('editBookTitle').value;
     const author = document.getElementById('editBookAuthor').value;
     const file = document.getElementById('editBookFile').files[0];
-    // Suppression du select cours pour édition
     const formData = new FormData();
     formData.append('title', title);
+    formData.append('author', author);
     if (file) formData.append('file', file);
     const res = await fetch(`/api/prof/documents/${bookId}`, {
         method: 'PUT',
         body: formData
     });
+    overlay.classList.add('hidden');
     if (res.ok) {
         closeEditBookModal();
         loadBooks();
@@ -99,13 +139,17 @@ document.getElementById('editBookForm').onsubmit = async function(e) {
 
 document.getElementById('addBookForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
     const formData = new FormData();
     formData.append('title', document.getElementById('bookTitle').value);
+    formData.append('author', document.getElementById('bookAuthor').value);
     formData.append('file', document.getElementById('bookFile').files[0]);
     const res = await fetch(`/api/prof/documents`, {
         method: 'POST',
         body: formData
     });
+    overlay.classList.add('hidden');
     if (res.ok) {
         document.getElementById('bookTitle').value = '';
         document.getElementById('bookAuthor').value = '';
@@ -118,10 +162,13 @@ document.getElementById('addBookForm').addEventListener('submit', async function
 
 async function deleteBook(bookId) {
     if (!confirm('Supprimer ce livre ?')) return;
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
     const book = window._bookData[bookId];
     const res = await fetch(`/api/prof/documents/${bookId}`, {
         method: 'DELETE'
     });
+    overlay.classList.add('hidden');
     if (res.ok) loadBooks();
 }
 
@@ -129,4 +176,10 @@ window.addEventListener('DOMContentLoaded', () => {
     loadBooks();
 });
 </script>
+<style>
+  /* Z-index pour overlays et modale */
+  .z-40 { z-index: 40; }
+  .z-50 { z-index: 50; }
+  .z-60 { z-index: 60; }
+</style>
 {% endblock %}

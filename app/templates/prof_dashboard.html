@@ -1,22 +1,68 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="max-w-4xl mx-auto p-6">
-    <h2 class="text-2xl font-bold text-blue-600 mb-4">Dashboard Professeur</h2>
-    <div id="profStats" class="mb-6 flex gap-6">
-        <div class="bg-white rounded shadow p-4 flex-1 text-center">
-            <div class="text-lg font-semibold">Cours</div>
-            <div id="nbCourses" class="text-3xl text-orange-500 font-bold">0</div>
+<div id="loading-overlay" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="flex flex-col items-center">
+    <svg class="animate-spin h-12 w-12 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+    </svg>
+    <span class="text-white text-lg font-semibold">Traitement en cours...</span>
+  </div>
+</div>
+<div class="mx-auto py-10 max-w-4xl">
+    <div class="flex items-center gap-3 mb-8">
+        <i class="fas fa-chalkboard-teacher text-3xl" style="color:#2196f3;"></i>
+        <h2 class="text-2xl font-bold" style="color:#2196f3;">Dashboard Professeur</h2>
+    </div>
+    <div id="profStats" class="mb-8 flex gap-6">
+        <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-100 p-6 flex-1 text-center">
+            <div class="text-lg font-semibold text-blue-900"><i class="fas fa-book mr-2 text-blue-500"></i>Cours</div>
+            <div id="nbCourses" class="text-3xl font-bold" style="color:#ff9800;">0</div>
         </div>
-        <div class="bg-white rounded shadow p-4 flex-1 text-center">
-            <div class="text-lg font-semibold">Documents</div>
-            <div id="nbDocuments" class="text-3xl text-orange-500 font-bold">0</div>
+        <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-100 p-6 flex-1 text-center">
+            <div class="text-lg font-semibold text-blue-900"><i class="fas fa-file-alt mr-2 text-blue-500"></i>Documents</div>
+            <div id="nbDocuments" class="text-3xl font-bold" style="color:#ff9800;">0</div>
         </div>
     </div>
-    <h3 class="text-xl font-semibold mb-2">Séances du jour</h3>
-    <div id="todaySessions" class="space-y-4">
+    <h3 class="text-xl font-semibold mb-4 flex items-center gap-2"><i class="fas fa-calendar-day text-orange-500"></i>Séances du jour</h3>
+    <div id="todaySessions" class="space-y-5">
         <!-- Séances du jour affichées ici -->
     </div>
 </div>
+<style>
+.status-toggle {
+  display: flex;
+  align-items: center;
+  background: #e0e7ef;
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px #2196f320;
+  border: 2px solid #b6c6e3;
+  user-select: none;
+}
+.status-toggle .toggle-btn {
+  cursor: pointer;
+  padding: 0.35rem 0.9rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.98rem;
+  border: none;
+  background: transparent;
+  transition: background 0.18s, color 0.18s;
+}
+.status-toggle .toggle-btn.active {
+  background: #2196f3;
+  color: #fff;
+  box-shadow: 0 2px 8px #2196f340;
+}
+.status-toggle .toggle-btn.effectuee.active {
+  background: #43a047;
+}
+.status-toggle .toggle-btn.annulee.active {
+  background: #ff9800;
+}
+</style>
 <script>
 async function loadDashboard() {
     const res = await fetch('/api/prof/dashboard');
@@ -33,33 +79,39 @@ async function loadDashboard() {
     } else {
         todaySessions.forEach(s => {
             container.innerHTML += `
-            <div class="bg-white rounded shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
+            <div class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-xl border border-blue-100 p-5 flex flex-col md:flex-row md:items-center gap-4">
                 <div class="flex-1">
-                    <div class="font-semibold text-blue-600">${s.course_name}</div>
-                    <div class="text-gray-700">${new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    <div class="text-sm text-gray-500">Statut : <span class="font-bold" id="status-${s.id}">${s.status}</span></div>
+                    <div class="font-semibold text-blue-600"><i class='fas fa-book mr-2'></i>${s.course_name}</div>
+                    <div class="text-gray-700"><i class='fas fa-clock mr-1 text-blue-400'></i>${new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div class="text-sm text-blue-900 mt-1">Statut : <span class="font-bold" id="status-${s.id}">${s.status}</span></div>
                 </div>
                 <div>
-                    <select class="px-2 py-1 border rounded" onchange="changeStatus('${s.id}', this.value)">
-                        <option value="en attente" ${s.status==='en attente'?'selected':''}>En attente</option>
-                        <option value="effectuée" ${s.status==='effectuée'?'selected':''}>Effectuée</option>
-                        <option value="annulée" ${s.status==='annulée'?'selected':''}>Annulée</option>
-                    </select>
+                  <div class="status-toggle" id="toggle-${s.id}">
+                    <button type="button" class="toggle-btn attente${s.status==='en attente'?' active':''}" onclick="changeStatusToggle('${s.id}', 'en attente')">En attente</button>
+                    <button type="button" class="toggle-btn effectuee${s.status==='confirmée'?' active':''}" onclick="changeStatusToggle('${s.id}', 'confirmée')">Confirmée</button>
+                    <button type="button" class="toggle-btn annulee${s.status==='levée'?' active':''}" onclick="changeStatusToggle('${s.id}', 'levée')">Levée</button>
+                  </div>
                 </div>
             </div>`;
         });
     }
 }
-async function changeStatus(sessionId, status) {
-    // Appel backend pour changer le statut de la séance
-    const res = await fetch('/api/prof/change-session-status', {
-        method: 'POST',
+function changeStatusToggle(sessionId, status) {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
+    fetch(`/api/prof/sessions/${sessionId}`, {
+        method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({session_id: sessionId, status})
+        body: JSON.stringify({status})
+    }).then(res => {
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            overlay.classList.add('hidden');
+        }
+    }).catch(() => {
+        overlay.classList.add('hidden');
     });
-    if (res.ok) {
-        document.getElementById(`status-${sessionId}`).textContent = status;
-    }
 }
 window.addEventListener('DOMContentLoaded', loadDashboard);
 </script>
